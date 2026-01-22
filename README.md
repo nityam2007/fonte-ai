@@ -1,11 +1,13 @@
 # FONTe AI - AI Font Generator
 
+> **Private Repository** | [github.com/nityam2007/fonte-ai](https://github.com/nityam2007/fonte-ai)
+
 An AI-powered font generation system that learns from existing fonts and generates new, unique typefaces.
 
-[![Status](https://img.shields.io/badge/Status-Phase%201.5%20Complete-green)]()
-[![Fonts](https://img.shields.io/badge/Fonts-3813-blue)]()
-[![Glyphs](https://img.shields.io/badge/Glyphs-270252-purple)]()
-[![License](https://img.shields.io/badge/License-Proprietary-red)]()
+[![Status](https://img.shields.io/badge/Status-Phase%201.5%20Complete-green)](https://github.com/nityam2007/fonte-ai)
+[![Fonts](https://img.shields.io/badge/Fonts-3813-blue)](https://github.com/nityam2007/fonte-ai)
+[![Glyphs](https://img.shields.io/badge/Glyphs-270252-purple)](https://github.com/nityam2007/fonte-ai)
+[![License](https://img.shields.io/badge/License-Proprietary-red)](LICENSE)
 
 ## 📖 Documentation
 
