@@ -337,3 +337,45 @@ TOKENIZED/
 ✅ **Phase 2A COMPLETE** - Ready to train!
 
 ---
+
+## [2026-01-22] - Git LFS + Colab Workflow
+
+### Added
+- **.gitattributes**: Git LFS tracking configuration
+  - `*.bin` files tracked via LFS (training data)
+  - `TOKENIZED/*.json` tracked via LFS
+
+### Changed
+- **notebooks/FONTe_AI_Training.ipynb**: Updated for seamless Colab workflow
+  - Now clones repo with `git lfs pull` instead of file upload
+  - Simplified cell structure (7 sections)
+  - Auto-saves checkpoints to Google Drive
+- **.gitignore**: Removed TOKENIZED exclusions (now tracked via LFS)
+
+### Uploaded to GitHub (via LFS)
+```
+TOKENIZED/
+├── train.bin      (379 MB)
+├── val.bin        (47 MB)
+├── test.bin       (47 MB)
+├── vocabulary.json
+├── config.json
+├── analysis.json
+├── train.json
+├── val.json
+└── test.json
+Total: 442 MB via Git LFS
+```
+
+### Colab Workflow (Now)
+```bash
+# In Colab - just run cells in order:
+!apt-get install git-lfs -qq
+!git lfs install
+!git clone https://github.com/nityam2007/fonte-ai.git
+%cd fonte-ai
+!git lfs pull
+# → Training data ready!
+```
+
+---
