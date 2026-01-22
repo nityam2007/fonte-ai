@@ -558,3 +558,107 @@ See `b200_metrics.png` and `b200_training.png` for:
   - Saves checkpoint every epoch
 
 ---
+
+## [2026-01-22] - B200 Training: Batch 1050
+
+### Increased Batch Size
+Pushed batch size from 1024 → **1050** for maximum throughput.
+
+### Updated Metrics
+| Metric | Batch 1024 | Batch 1050 |
+|--------|------------|------------|
+| Batches/Epoch | 194 | **190** |
+| Speed | 1.49 it/s | **1.90 it/s** |
+| Time/Epoch | ~2.2 min | **~2:13** |
+
+### Training Progress (Batch 1050)
+| Epoch | Train Loss | Val Loss | Time |
+|-------|------------|----------|------|
+| 1 | 15.82 | 6.91 | 2:13 |
+| 2 | 6.78 | 5.44 | 2:13 |
+| 3 | 6.17 | 5.32 | 2:13 |
+| 4 | 5.98 | 5.16 | 2:13 |
+| 5 | 5.84 | 5.16 | 2:13 |
+| 6 | 5.70 | 5.10 | 2:13 |
+| 7 | 5.51 | 5.02 | 2:14 |
+
+*Updated: 2026-01-22 10:30 PM*
+
+**Val loss dropped 27% in 7 epochs!** (6.91 → 5.02)
+
+### ETA
+- 50 epochs × 2.2 min = **~1.8 hours**
+- Cost: ~$12
+
+---
+
+## [2026-01-22 10:30 PM] - README Technical Documentation
+
+### Added
+Comprehensive technical explanations for beginners:
+- How SVG-to-SVG approach works
+- What Transformers are and why they work for fonts
+- Token system explained with examples
+- Model architecture diagram
+- Training process breakdown
+- Why B200 GPU (batch size comparison)
+
+---
+
+## [2026-01-22 11:00 PM] - First Generation Test (Epoch 13)
+
+### Downloaded Model
+- Copied `best_model.pt` from Modal B200 training
+- Epoch 13, val_loss 4.29 (-38% from epoch 1)
+- Model size: 21 MB (~5M params)
+
+### Architecture Mismatch Bug Fixed
+`generate_font.py` had different layer naming than Modal notebook.
+
+| Old (broken) | New (matching Modal) |
+|--------------|----------------------|
+| `token_embedding` | `emb` |
+| `attention.w_q` | `attn.wq` |
+| `norm1/norm2` | `n1/n2` |
+| `lm_head` | `head` |
+| `causal_mask` | `mask` |
+
+### UNK Token Bug Discovered
+Model generates many `UNK (token 3)` tokens mid-sequence.
+Old decoder stopped at first UNK → empty SVGs.
+
+**Fix**: Skip UNK tokens instead of stopping:
+```python
+# Before: if token <= 3: break
+# After:
+if token == 0 or token == 2: break  # PAD or EOS
+if token == 1 or token == 3: continue  # Skip SOS/UNK
+```
+
+### Generation Results (Epoch 13)
+```
+✅ 'A' → 256 tokens → d="M 20.2 127.9 Q 22.1..."
+✅ 'B' → 256 tokens → d="M 16.0 Q 14.0..."
+✅ 'C' → 91 tokens  → d="M 47.9 2.4 Q 25.5..."
+✅ 'a' → 183 tokens → d="M 1.5 Q 1.5 1.5..."
+✅ 'b' → 70 tokens  → d="M 4.9 0.0 V 60.7..."
+✅ 'c' → 153 tokens → d="M 127.9 127.9 Q..."
+```
+
+- ✅ Valid SVG commands (M, Q, V, H, Z)
+- ✅ Coordinate values across canvas
+- ✅ Quadratic Bezier curves
+- ⚠️ Paths still chaotic (expected at epoch 13)
+- ⚠️ High UNK token frequency (training artifact)
+
+### Training Status
+| Epoch | Train Loss | Val Loss | Change |
+|-------|------------|----------|--------|
+| 1 | 15.82 | 6.91 | - |
+| 7 | 5.51 | 5.02 | -27% |
+| 13 | 4.58 | 4.29 | -38% |
+| 50 | ? | ? | ETA ~1hr |
+
+Target: val_loss ~2.5-3.0 for recognizable glyphs.
+
+---

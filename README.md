@@ -1,6 +1,12 @@
 # FONTe AI - AI Font Generator
 
-> **Private Repository** | [github.com/nityam2007/fonte-ai](https://github.com/nityam2007/fonte-ai)
+> ⚠️ **PROPRIETARY SOFTWARE** - All Rights Reserved
+>
+> This repository is public for **viewing and educational purposes only**.
+> No license is granted for copying, modification, distribution, or commercial use.
+> See [LICENSE](LICENSE) for full terms.
+
+[github.com/nityam2007/fonte-ai](https://github.com/nityam2007/fonte-ai)
 
 An AI-powered font generation system that learns from existing fonts and generates new, unique typefaces.
 
@@ -31,7 +37,153 @@ Build a generative AI model that can:
 
 ---
 
-## � Data Source & Storage
+## 🧠 How It Works (For Beginners)
+
+### The Big Picture
+
+Imagine teaching a computer to draw letters. That's essentially what FONTe AI does:
+
+```
+Step 1: Show the AI thousands of fonts (3,800+ fonts!)
+Step 2: AI learns patterns (serifs look like this, sans-serif like that)
+Step 3: AI generates NEW letters it has never seen before
+Step 4: Convert to usable font files (.ttf)
+```
+
+### Why SVG Instead of Images?
+
+| Approach | How it Works | Problem |
+|----------|--------------|---------|
+| **Images (Pixels)** | Treat letters as 128x128 pixel grids | Blurry when scaled, loses quality |
+| **SVG (Vectors)** ✅ | Store letters as mathematical curves | Perfect at ANY size, professional quality |
+
+**We chose SVG because:**
+- Fonts are vector graphics (curves, not pixels)
+- SVGs scale infinitely without losing quality
+- Professional designers need editable vectors
+- Smaller file sizes than images
+
+### What is a Transformer?
+
+You've heard of ChatGPT? It uses a "Transformer" architecture. We use the same technology, but for fonts!
+
+```
+ChatGPT: "The cat sat on the ___" → predicts "mat"
+FONTe:   "M 10 20 L 50 ___" → predicts "80" (next coordinate)
+```
+
+**Why Transformers work for fonts:**
+1. **Sequence understanding** - Letters are sequences of drawing commands
+2. **Long-range patterns** - The top of 'A' relates to the bottom
+3. **Style consistency** - Learns that serif fonts have little feet
+
+### The Token System (How AI Reads Fonts)
+
+Computers can't read drawings directly. We convert SVG paths into "tokens" (numbers):
+
+```
+Original SVG:  "M 10 20 L 50 80 Z"  (Move to 10,20, Line to 50,80, Close)
+     ↓
+Tokenized:     [1, 25, 29, 4, 115, 125, 6, 155, 185, 22, 2]
+               [SOS, style, char, M, 10, 20, L, 50, 80, Z, EOS]
+```
+
+**Token categories:**
+| Token Range | What It Represents | Example |
+|-------------|-------------------|---------|
+| 0-3 | Special markers | Start, End, Padding |
+| 4-23 | Drawing commands | M (move), L (line), C (curve) |
+| 24-28 | Font styles | serif, sans-serif, mono |
+| 29-104 | Characters | A, B, C, a, b, c, 0-9 |
+| 105-1104 | Coordinates | 0-999 (quantized positions) |
+
+### Model Architecture (The Brain)
+
+```
+┌─────────────────────────────────────────────┐
+│            FONTe Transformer                │
+├─────────────────────────────────────────────┤
+│  Input: [SOS, style, char, M, 10, 20, ...]  │
+│              ↓                              │
+│  ┌─────────────────────────────────┐        │
+│  │  Token Embedding (256 dims)     │        │
+│  │  + Positional Encoding          │        │
+│  └─────────────────────────────────┘        │
+│              ↓                              │
+│  ┌─────────────────────────────────┐        │
+│  │  Transformer Block ×6           │        │
+│  │  ├─ Multi-Head Attention (4)    │        │
+│  │  ├─ Feed Forward (1024)         │        │
+│  │  └─ Layer Normalization         │        │
+│  └─────────────────────────────────┘        │
+│              ↓                              │
+│  Output: Predict next token                 │
+└─────────────────────────────────────────────┘
+```
+
+**Key numbers:**
+| Component | Value | Why? |
+|-----------|-------|------|
+| d_model | 256 | Embedding dimension (how "detailed" each token is) |
+| n_heads | 4 | Attention heads (different ways to look at relationships) |
+| n_layers | 6 | Depth (more layers = more complex patterns) |
+| d_ff | 1024 | Feed-forward width (processing power) |
+| vocab_size | 1,105 | Total unique tokens |
+| max_seq_len | 512 | Maximum path length |
+| **Total params** | **~5M** | Relatively small, trains fast |
+
+### Training Process
+
+```
+For each font glyph:
+  1. Convert SVG path to tokens
+  2. Feed tokens to model
+  3. Model predicts next token
+  4. Compare prediction to actual
+  5. Adjust model weights (backpropagation)
+  6. Repeat 248,000 × 50 epochs = 12.4 million times!
+```
+
+**Loss function:** Cross-entropy (measures how wrong predictions are)
+- Random guess: ~7.0 (ln(1105))
+- After training: ~1.5 (much better!)
+
+### Generation (Making New Fonts)
+
+Once trained, the model generates fonts autoregressively:
+
+```python
+# Start with style and character
+tokens = [SOS, SANS_SERIF, 'A']
+
+# Generate one token at a time
+while not done:
+    next_token = model.predict(tokens)  # What comes next?
+    tokens.append(next_token)
+    if next_token == EOS:
+        break
+
+# Convert back to SVG
+svg_path = tokens_to_svg(tokens)
+```
+
+### Why B200 GPU?
+
+| GPU | VRAM | Batch Size | Speed | Cost/50 epochs |
+|-----|------|------------|-------|----------------|
+| Your laptop | 4-8 GB | 8-16 | Days | FREE (slow) |
+| Colab T4 | 15 GB | 64 | 23 hrs | FREE |
+| **B200** | **192 GB** | **1050** | **1.8 hrs** | **~$12** |
+
+**Why batch size matters:**
+- Bigger batch = more examples processed in parallel
+- Bigger batch = more GPU memory needed
+- B200's 192GB VRAM allows batch 1050 (vs 64 on T4)
+- Result: **12x faster training!**
+
+---
+
+## 📊 Data Source & Storage
 
 ### Why Datasets Are NOT in This Repository
 

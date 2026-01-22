@@ -23,7 +23,7 @@ import math
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Model Architecture (same as training)
+# Model Architecture (matching Modal notebook)
 # ═══════════════════════════════════════════════════════════════════════════
 
 @dataclass
@@ -41,99 +41,79 @@ class ModelConfig:
 
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, d_model: int, max_len: int = 512, dropout: float = 0.1):
+    def __init__(self, d_model, max_len=512, dropout=0.1):
         super().__init__()
-        self.dropout = nn.Dropout(p=dropout)
+        self.dropout = nn.Dropout(dropout)
         pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0)
-        self.register_buffer('pe', pe)
+        pos = torch.arange(max_len).unsqueeze(1).float()
+        div = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(pos * div)
+        pe[:, 1::2] = torch.cos(pos * div)
+        self.register_buffer('pe', pe.unsqueeze(0))
 
     def forward(self, x):
-        x = x + self.pe[:, :x.size(1), :]
-        return self.dropout(x)
+        return self.dropout(x + self.pe[:, :x.size(1)])
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d_model: int, n_heads: int, dropout: float = 0.1):
+    def __init__(self, d_model, n_heads, dropout=0.1):
         super().__init__()
-        self.d_model = d_model
         self.n_heads = n_heads
         self.d_k = d_model // n_heads
-        self.w_q = nn.Linear(d_model, d_model)
-        self.w_k = nn.Linear(d_model, d_model)
-        self.w_v = nn.Linear(d_model, d_model)
-        self.w_o = nn.Linear(d_model, d_model)
+        self.wq = nn.Linear(d_model, d_model)
+        self.wk = nn.Linear(d_model, d_model)
+        self.wv = nn.Linear(d_model, d_model)
+        self.wo = nn.Linear(d_model, d_model)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, mask=None):
-        batch_size, seq_len, _ = x.shape
-        q = self.w_q(x).view(batch_size, seq_len, self.n_heads, self.d_k).transpose(1, 2)
-        k = self.w_k(x).view(batch_size, seq_len, self.n_heads, self.d_k).transpose(1, 2)
-        v = self.w_v(x).view(batch_size, seq_len, self.n_heads, self.d_k).transpose(1, 2)
-        scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)
+        B, L, D = x.shape
+        q = self.wq(x).view(B, L, self.n_heads, self.d_k).transpose(1, 2)
+        k = self.wk(x).view(B, L, self.n_heads, self.d_k).transpose(1, 2)
+        v = self.wv(x).view(B, L, self.n_heads, self.d_k).transpose(1, 2)
+        scores = (q @ k.transpose(-2, -1)) / math.sqrt(self.d_k)
         if mask is not None:
             scores = scores.masked_fill(mask == 0, float('-inf'))
-        attn = F.softmax(scores, dim=-1)
-        attn = self.dropout(attn)
-        out = torch.matmul(attn, v)
-        out = out.transpose(1, 2).contiguous().view(batch_size, seq_len, self.d_model)
-        return self.w_o(out)
-
-
-class FeedForward(nn.Module):
-    def __init__(self, d_model: int, d_ff: int, dropout: float = 0.1):
-        super().__init__()
-        self.linear1 = nn.Linear(d_model, d_ff)
-        self.linear2 = nn.Linear(d_ff, d_model)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x):
-        return self.linear2(self.dropout(F.gelu(self.linear1(x))))
+        attn = self.dropout(F.softmax(scores, dim=-1))
+        out = (attn @ v).transpose(1, 2).reshape(B, L, -1)
+        return self.wo(out)
 
 
 class TransformerBlock(nn.Module):
-    def __init__(self, d_model: int, n_heads: int, d_ff: int, dropout: float = 0.1):
+    def __init__(self, d_model, n_heads, d_ff, dropout=0.1):
         super().__init__()
-        self.attention = MultiHeadAttention(d_model, n_heads, dropout)
-        self.ff = FeedForward(d_model, d_ff, dropout)
-        self.norm1 = nn.LayerNorm(d_model)
-        self.norm2 = nn.LayerNorm(d_model)
-        self.dropout = nn.Dropout(dropout)
+        self.attn = MultiHeadAttention(d_model, n_heads, dropout)
+        self.ff = nn.Sequential(nn.Linear(d_model, d_ff), nn.GELU(), nn.Dropout(dropout), nn.Linear(d_ff, d_model))
+        self.n1 = nn.LayerNorm(d_model)
+        self.n2 = nn.LayerNorm(d_model)
+        self.drop = nn.Dropout(dropout)
 
     def forward(self, x, mask=None):
-        x = x + self.dropout(self.attention(self.norm1(x), mask))
-        x = x + self.dropout(self.ff(self.norm2(x)))
-        return x
+        x = x + self.drop(self.attn(self.n1(x), mask))
+        return x + self.drop(self.ff(self.n2(x)))
 
 
 class FonteModel(nn.Module):
     def __init__(self, config: ModelConfig):
         super().__init__()
         self.config = config
-        self.token_embedding = nn.Embedding(config.vocab_size, config.d_model, padding_idx=config.pad_token_id)
-        self.pos_encoding = PositionalEncoding(config.d_model, config.max_seq_length, config.dropout)
+        self.emb = nn.Embedding(config.vocab_size, config.d_model, padding_idx=config.pad_token_id)
+        self.pos = PositionalEncoding(config.d_model, config.max_seq_length, config.dropout)
         self.blocks = nn.ModuleList([
             TransformerBlock(config.d_model, config.n_heads, config.d_ff, config.dropout)
             for _ in range(config.n_layers)
         ])
         self.norm = nn.LayerNorm(config.d_model)
-        self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=False)
-        self.lm_head.weight = self.token_embedding.weight
-        self.register_buffer('causal_mask', torch.tril(torch.ones(config.max_seq_length, config.max_seq_length)))
+        self.head = nn.Linear(config.d_model, config.vocab_size, bias=False)
+        self.head.weight = self.emb.weight
+        self.register_buffer('mask', torch.tril(torch.ones(config.max_seq_length, config.max_seq_length)))
 
     def forward(self, input_ids, labels=None):
-        batch_size, seq_len = input_ids.shape
-        x = self.token_embedding(input_ids)
-        x = self.pos_encoding(x)
-        mask = self.causal_mask[:seq_len, :seq_len]
-        for block in self.blocks:
-            x = block(x, mask)
-        x = self.norm(x)
-        logits = self.lm_head(x)
+        x = self.pos(self.emb(input_ids))
+        m = self.mask[:x.size(1), :x.size(1)]
+        for b in self.blocks:
+            x = b(x, m)
+        logits = self.head(self.norm(x))
         return {'logits': logits}
 
     @torch.no_grad()
@@ -216,21 +196,31 @@ def tokens_to_svg_path(tokens: List[int], canvas_size: int = 128) -> str:
     path_parts = []
     i = 0
     
-    # Skip SOS (1), style (24-28), char (29-104) tokens
+    # Skip SOS (1), style (24-28), char (29-104) tokens at the start
     while i < len(tokens) and (tokens[i] <= 3 or (24 <= tokens[i] <= 104)):
         i += 1
     
     while i < len(tokens):
         token = tokens[i]
         
-        # EOS or PAD
-        if token <= 3:
+        # EOS (2) or PAD (0) - stop
+        if token == 0 or token == 2:
             break
+        
+        # UNK (3) or SOS (1) - skip but continue (model artifact)
+        if token == 1 or token == 3:
+            i += 1
+            continue
         
         # Command token (4-23)
         if 4 <= token <= 23:
             cmd = ID_TO_COMMAND.get(token, '')
             path_parts.append(cmd)
+            i += 1
+            continue
+        
+        # Style/char tokens that appear mid-sequence - skip
+        if 24 <= token <= 104:
             i += 1
             continue
         
