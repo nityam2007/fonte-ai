@@ -8,7 +8,9 @@ pillow>=9.0.0         # Image processing (for raster preview)
 cairosvg>=2.5.0       # SVG to PNG conversion (for preview)
 svgwrite>=1.4.0       # SVG creation utilities
 
-# For AI training (Phase 2)
-# torch>=2.0.0
-# diffusers>=0.20.0
-# accelerate>=0.20.0
+# AI Training (Phase 2)
+torch>=2.0.0          # PyTorch for model training
+
+# Optional: For Colab training
+# tqdm                # Progress bars (included in Colab)
+# numpy               # Numerical operations

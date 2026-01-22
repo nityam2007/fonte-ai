@@ -257,3 +257,83 @@ python scripts/preprocess_dataset.py --turbo
 ```
 
 ---
+
+## [2026-01-22] - Phase 2A: Tokenization & Model Architecture
+
+### Added
+- **scripts/svg_tokenizer.py**: SVG path tokenization system
+  - 1,105 token vocabulary
+  - Path commands: M, L, C, Q, H, V, Z (absolute & relative)
+  - Coordinates: Quantized 0-999
+  - Style tokens: 5 categories
+  - Character tokens: 72 glyphs
+
+- **scripts/create_dataset.py**: Dataset pipeline for training
+  - Creates tokenized sequences from normalized SVGs
+  - Binary format for efficient loading
+  - Filters sequences by length (10-512 tokens)
+
+- **model/fonte_model.py**: SVG Path Transformer
+  - Transformer decoder architecture
+  - 3 sizes: small (~1M), medium (~12M), large (~50M params)
+  - Autoregressive generation
+  - Top-k and top-p sampling
+
+- **model/train.py**: Training script
+  - Supports CPU and CUDA
+  - Cosine annealing LR scheduler
+  - Gradient clipping
+  - Checkpoint saving
+
+- **notebooks/FONTe_AI_Training.ipynb**: Google Colab notebook
+  - Ready for free T4 GPU training
+  - Upload data, train, download model
+  - ~6-10 hours for 50 epochs
+
+### Tokenization Results
+```
+Total sequences:  248,227
+Max seq length:   512
+Vocab size:       1,105
+Processing time:  49.9s
+------------------------------------------------------------
+Splits:
+  Train: 198,581 (80.0%)
+  Val:   24,822 (10.0%)
+  Test:  24,824 (10.0%)
+------------------------------------------------------------
+Style distribution:
+  sans-serif      155,744 (62.7%)
+  serif           50,621 (20.4%)
+  display         21,033 (8.5%)
+  monospace       16,520 (6.7%)
+  handwriting      4,309 (1.7%)
+```
+
+### Model Architecture
+- **Input**: [SOS] [STYLE] [CHAR] → sequence of path tokens
+- **Output**: Next token prediction
+- **Generation**: Autoregressive with temperature/top-k sampling
+
+### Files Created
+```
+model/
+├── fonte_model.py    # Model architecture
+└── train.py          # Training script
+scripts/
+├── svg_tokenizer.py  # Path tokenization
+└── create_dataset.py # Dataset pipeline
+notebooks/
+└── FONTe_AI_Training.ipynb  # Colab notebook
+TOKENIZED/
+├── vocabulary.json   # Token mappings
+├── train.bin         # Training data (198K sequences)
+├── val.bin           # Validation data (24K sequences)
+├── test.bin          # Test data (24K sequences)
+└── config.json       # Dataset config
+```
+
+### Milestone
+✅ **Phase 2A COMPLETE** - Ready to train!
+
+---
