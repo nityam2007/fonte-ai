@@ -955,7 +955,21 @@ Expected trajectory:
 | 11 | 4.82 | 4.53 | -3.0% | ✅ | 2:13 |
 | 12 | 4.69 | 4.40 | -2.9% | ✅ | 2:13 |
 | 13 | 4.58 | 4.29 | -2.5% | ✅ | 2:13 |
-| 14 | (running ~81%) | - | - | - | - |
+| 14 | 4.48 | 4.19 | -2.3% | ✅ | 2:13 |
+| 15 | 4.40 | 4.10 | -2.1% | ✅ | 2:13 |
+| 16 | 4.32 | 4.02 | -2.0% | ✅ | 2:13 |
+| 17 | 4.26 | 3.94 | -2.0% | ✅ | 2:13 |
+| 18 | 4.19 | 3.89 | -1.3% | ✅ | 2:13 |
+| 19 | 4.13 | 3.81 | -2.1% | ✅ | 2:13 |
+| 20 | 4.08 | 3.76 | -1.3% | ✅ | 2:13 |
+| 21 | 4.02 | 3.71 | -1.3% | ✅ | 2:13 |
+| 22 | 3.97 | 3.66 | -1.3% | ✅ | 2:13 |
+| 23 | 3.92 | 3.61 | -1.4% | ✅ | 2:13 |
+| 24 | 3.88 | 3.57 | -1.1% | ✅ | 2:13 |
+| 25 | 3.84 | 3.53 | -1.1% | ✅ | 2:13 |
+| 26 | 3.80 | 3.49 | -1.1% | ✅ | 2:13 |
+| 27 | 3.77 | 3.46 | -0.9% | ✅ | 2:14 |
+| 28 | (running ~87%) | - | - | - | - |
 
 ### Analysis:
 
@@ -965,40 +979,44 @@ Epoch 1:  ███████████████████████�
 Epoch 5:  ██████████████████████████████ 5.16
 Epoch 10: ███████████████████████████ 4.67
 Epoch 13: █████████████████████████ 4.29
+Epoch 17: ███████████████████████ 3.94
+Epoch 22: █████████████████████ 3.66
+Epoch 27: ████████████████████ 3.46
 ```
 
-**Total Improvement:**
-- Val loss: 6.91 → 4.29 = **-38% in 13 epochs!**
-- Train loss: 15.82 → 4.58 = **-71%**
-- Best model saved **12 times** (only epoch 5 didn't improve)
+**Total Improvement (Epoch 27):**
+- Val loss: 6.91 → 3.46 = **-50% in 27 epochs!**
+- Train loss: 15.82 → 3.77 = **-76%**
+- Best model saved **26 times** (only epoch 5 didn't improve)
 
 ### Observations:
 
 1. **Consistent improvement** - Every epoch after 5 beats the best
 2. **No overfitting** - Val loss keeps dropping alongside train loss
-3. **Healthy gap** - Train (4.58) vs Val (4.29), model generalizes well
+3. **Healthy gap** - Train (3.77) vs Val (3.46), model generalizes well
 4. **Stable timing** - 2:13 per epoch, very consistent
 
 ### Progress:
-- **Completed:** 13/50 epochs (26%)
-- **Elapsed:** ~29 minutes
-- **Remaining:** 37 epochs × 2:13 = ~82 minutes (~1.4 hours)
-- **ETA:** ~11:10 PM
+- **Completed:** 27/50 epochs (54%)
+- **Elapsed:** ~60 minutes
+- **Remaining:** 23 epochs × 2:13 = ~51 minutes
+- **ETA:** ~12:10 AM
 
 ### Updated Projection:
 
 | Epoch | Actual Val Loss | Original Projection |
 |-------|-----------------|---------------------|
 | 10 | **4.67** ✅ | 4.8 |
-| 20 | (pending) | 3.5 |
+| 20 | **3.76** ✅ | 3.5 |
+| 27 | **3.46** ✅ | ~3.0 |
 | 30 | (pending) | 2.5 |
 | 50 | (pending) | 1.5 |
 
-Model is **ahead of projections!**
+**Halfway done! Val loss 3.46 = -50% improvement!**
 
 ---
 
-*Entry logged: 2026-01-22 10:45 PM - Epoch 13 complete, training ahead of schedule!*
+*Entry logged: 2026-01-22 11:19 PM - Epoch 27 complete, val_loss 3.46 (-50%)*
 
 ---
 
