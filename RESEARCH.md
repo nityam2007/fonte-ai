@@ -565,3 +565,69 @@ def generate(style_id, char_id, temperature=1.0, top_k=50):
 *Entry logged: 2026-01-22*
 
 ---
+
+# Phase 2B: Model Training
+
+## 2B.1 Training Session Started
+
+### Date: 2026-01-22
+
+### Platform:
+- **Hardware**: Google Colab T4 GPU (15GB VRAM)
+- **Runtime**: Standard (Free Tier)
+
+### Training Configuration:
+
+| Parameter | Value |
+|-----------|-------|
+| Model Size | Medium (~12M params) |
+| d_model | 256 |
+| n_heads | 4 |
+| n_layers | 6 |
+| d_ff | 1024 |
+| Epochs | 50 |
+| Batch Size | 64 |
+| Learning Rate | 3e-4 |
+| Optimizer | AdamW |
+| Weight Decay | 0.01 |
+| Scheduler | Cosine Annealing |
+| Gradient Clipping | 1.0 |
+
+### Initial Metrics:
+
+| Metric | Value |
+|--------|-------|
+| Batches per Epoch | 3,103 |
+| Training Speed | ~1.79 it/s |
+| ETA per Epoch | ~28 minutes |
+| Initial Loss | 5.58 |
+| Total Training Time (est.) | ~23 hours |
+
+### Observations:
+
+1. **Loss Starting Point**: 5.58 is reasonable for random initialization
+   - With vocab size 1,105, random would be ~7.0 (ln(1105))
+   - Model is already learning!
+
+2. **Speed**: 1.79 it/s is good for T4
+   - Batch size 64 is optimal
+   - Higher batch sizes risk OOM
+
+3. **Memory Usage**: Model fits comfortably in T4's 15GB
+   - 12M params × 4 bytes × 2 (gradients) = ~96 MB
+   - Plenty of room for activations
+
+### Expected Training Curve:
+
+| Epoch | Expected Loss | Notes |
+|-------|---------------|-------|
+| 1-5 | 5.5 → 3.5 | Rapid initial learning |
+| 5-20 | 3.5 → 2.0 | Steady improvement |
+| 20-40 | 2.0 → 1.5 | Fine-tuning |
+| 40-50 | 1.5 → 1.2 | Convergence |
+
+---
+
+*Entry logged: 2026-01-22 - Training in progress*
+
+---

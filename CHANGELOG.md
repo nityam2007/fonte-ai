@@ -379,3 +379,39 @@ Total: 442 MB via Git LFS
 ```
 
 ---
+
+## [2026-01-22] - Phase 2B: Training Started! 🚀
+
+### Status
+**TRAINING IN PROGRESS** on Google Colab T4 GPU
+
+### Training Metrics (Live)
+| Metric | Value |
+|--------|-------|
+| Platform | Google Colab (T4 GPU) |
+| Batches | 3,103 per epoch |
+| Batch Size | 64 |
+| Speed | ~1.79 it/s |
+| ETA per Epoch | ~28 minutes |
+| Initial Loss | 5.58 |
+
+### Training Configuration
+```python
+EPOCHS = 50
+BATCH_SIZE = 64
+LEARNING_RATE = 3e-4
+MODEL = "medium" (~12M params)
+OPTIMIZER = AdamW (weight_decay=0.01)
+SCHEDULER = CosineAnnealingLR
+```
+
+### Milestones
+- ✅ Phase 1: Dataset Extraction (270K glyphs)
+- ✅ Phase 1.5: Preprocessing (3,813 fonts)
+- ✅ Phase 2A: Tokenization (248K sequences)
+- ✅ Phase 2A: Model Architecture
+- 🔄 **Phase 2B: Training (IN PROGRESS)**
+- ⏳ Phase 3: Evaluation
+- ⏳ Phase 4: Font Generation
+
+---

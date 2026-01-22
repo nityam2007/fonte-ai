@@ -4,10 +4,11 @@
 
 An AI-powered font generation system that learns from existing fonts and generates new, unique typefaces.
 
-[![Status](https://img.shields.io/badge/Status-Phase%202A%20Complete-green)](https://github.com/nityam2007/fonte-ai)
+[![Status](https://img.shields.io/badge/Status-Phase%202B%20Training-yellow)](https://github.com/nityam2007/fonte-ai)
 [![Fonts](https://img.shields.io/badge/Fonts-3813-blue)](https://github.com/nityam2007/fonte-ai)
 [![Glyphs](https://img.shields.io/badge/Glyphs-270252-purple)](https://github.com/nityam2007/fonte-ai)
 [![Sequences](https://img.shields.io/badge/Sequences-248K-orange)](https://github.com/nityam2007/fonte-ai)
+[![Training](https://img.shields.io/badge/Training-In%20Progress%20🚀-brightgreen)](https://github.com/nityam2007/fonte-ai)
 [![License](https://img.shields.io/badge/License-Proprietary-red)](LICENSE)
 
 ## 📖 Documentation
@@ -261,7 +262,7 @@ python scripts/preprocess_dataset.py --canvas-size 256 --turbo
 - [x] **Phase 2A**: Tokenization (248K sequences, 1,105 vocab)
 - [x] **Phase 2A**: Model Architecture (Transformer, ~12M params)
 - [x] **Phase 2A**: Training Pipeline (Colab + Git LFS)
-- [ ] **Phase 2B**: Training & Hyperparameter Tuning
+- [🔄] **Phase 2B**: Training (IN PROGRESS - T4 GPU, ~28min/epoch)
 - [ ] **Phase 3**: Evaluation & Generation Quality
 - [ ] **Phase 4**: Font Export (SVG → TTF)
 
