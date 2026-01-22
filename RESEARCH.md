@@ -722,8 +722,69 @@ Plus activations, gradients, and intermediate values = **40 GB total**
 | **L40S** | 48 GB | 180 | ~198 |
 | A100 80GB | 80 GB | 350 | ~400 |
 
+*Note: These are specific to our model (seq_length=512, d_model=256, n_layers=6)*
+
 ---
 
 *Entry logged: 2026-01-22 - Important memory insights!*
+
+---
+
+## 2B.4 Epoch 1 Results
+
+### Date: 2026-01-22
+
+### Training Progress:
+
+| Epoch | Train Loss | Val Loss | Δ Val Loss | Time |
+|-------|------------|----------|------------|------|
+| 0 (init) | - | ~7.0 | - | - |
+| **1** | 4.96 | 3.94 | **-44%** | 7.8 min |
+
+### Analysis:
+
+1. **Rapid Initial Learning**: Loss dropped from ~7.0 (random, ln(1105)) to 3.94
+2. **Model is Learning**: 44% improvement in just 1 epoch
+3. **Not Overfitting**: Train (4.96) > Val (3.94) is healthy
+
+### Expected Quality at Epoch 1:
+
+Based on loss 3.94 (perplexity ~51):
+- 🔴 Mostly noise with occasional structure
+- Some path commands (M, L, C) appearing
+- Coordinates likely random
+- NOT valid SVG paths yet
+
+### Generation Script Added:
+
+Created `scripts/generate_font.py` for testing checkpoints:
+
+```bash
+# Test epoch 1
+python scripts/generate_font.py --model TRAINED/checkpoint_epoch_1.pt --char A
+
+# Test with different temperatures
+python scripts/generate_font.py --model TRAINED/best_model.pt --char A --temperature 0.5
+python scripts/generate_font.py --model TRAINED/best_model.pt --char A --temperature 1.0
+```
+
+### Checkpoint Strategy:
+
+Saving all 50 epoch checkpoints to:
+```
+TRAINED/
+├── best_model.pt              # Best val_loss so far
+├── checkpoint_epoch_1.pt      # 21 MB each
+├── checkpoint_epoch_2.pt
+├── ...
+├── checkpoint_epoch_50.pt
+└── training_history.json      # Loss curves
+```
+
+Total expected size: 50 × 21 MB = **~1 GB**
+
+---
+
+*Entry logged: 2026-01-22 - First epoch complete!*
 
 ---

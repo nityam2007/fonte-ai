@@ -442,3 +442,57 @@ Our initial estimates were WRONG. Actual memory breakdown:
 - ⏳ Phase 4: Font Generation
 
 ---
+
+## [2026-01-22] - Epoch 1 Complete + Generation Script
+
+### Training Progress
+| Epoch | Train Loss | Val Loss | Time |
+|-------|------------|----------|------|
+| 1 | 4.96 | 3.94 | 7.8 min |
+
+**Loss dropped 30%** from initial 5.68 → 3.94 (model is learning!)
+
+### Added
+- **scripts/generate_font.py**: Font generation from trained models
+  - Load any checkpoint from `TRAINED/` directory
+  - Generate single or multiple characters
+  - Multiple styles supported
+  - Outputs SVG files with HTML preview
+  - Token-to-SVG path conversion
+
+### Usage
+```bash
+# List available models
+python scripts/generate_font.py --list-models
+
+# Generate single character
+python scripts/generate_font.py --model TRAINED/epoch_1.pt --char A --style serif
+
+# Generate multiple characters
+python scripts/generate_font.py --model TRAINED/best_model.pt --chars "ABC" --style sans-serif
+
+# Generate all characters
+python scripts/generate_font.py --model TRAINED/best_model.pt --all-chars --output generated/
+```
+
+### Model Checkpoints Saved
+```
+TRAINED/
+├── best_model.pt         (21 MB)
+├── checkpoint_epoch_1.pt (21 MB)
+└── training_history.json
+```
+
+### GPU Batch Size Reference (For Our Model)
+
+| GPU | VRAM | Safe Batch | Speed |
+|-----|------|------------|-------|
+| T4 | 15 GB | ~64 | 1.79 it/s |
+| A10 | 24 GB | ~100 | ~2.0 it/s |
+| A100-40GB | 40 GB | ~180 | ~2.2 it/s |
+| **L40S** | **48 GB** | **~198** | **2.24 it/s** |
+| A100-80GB | 80 GB | ~400 | ~2.5 it/s |
+
+*Note: These are for seq_length=512, d_model=256, n_layers=6*
+
+---
