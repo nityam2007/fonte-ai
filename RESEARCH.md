@@ -788,3 +788,90 @@ Total expected size: 50 × 21 MB = **~1 GB**
 *Entry logged: 2026-01-22 - First epoch complete!*
 
 ---
+
+## 2B.5 Upgraded to B200 GPU
+
+### Date: 2026-01-22
+
+### Why Upgrade from L40S:
+- L40S batch 198 @ 7.5 min/epoch → ~6.2 hours total
+- B200 has 192GB VRAM - can use much larger batch size
+- Faster overall despite higher hourly cost
+
+### Platform: Modal.com B200
+
+| Spec | Value |
+|------|-------|
+| **GPU** | NVIDIA B200 |
+| **VRAM** | 192 GB |
+| **Cost** | $6.73/hour |
+| **CPU** | 2 cores |
+| **RAM** | 8 GB |
+
+### B200 Training Metrics:
+
+| Metric | L40S | B200 |
+|--------|------|------|
+| VRAM | 48 GB | 192 GB |
+| Batch Size | 198 | **1024** |
+| VRAM Used | 40 GB | **~130 GB** |
+| Batches/Epoch | 1,003 | **194** |
+| Speed | 2.24 it/s | **1.49 it/s** |
+| Time/Epoch | 7.5 min | **~2.2 min** |
+| GPU Utilization | ~90% | ~100% |
+| GPU Temp | ~70°C | ~45°C |
+
+### Training Progress (B200):
+
+| Epoch | Train Loss | Val Loss | Time |
+|-------|------------|----------|------|
+| 1 | 15.27 | 6.49 | 2:13 |
+| 2 | 6.67 | 5.51 | 2:14 |
+| 3 | (running) | - | - |
+
+*Note: Higher initial loss due to larger batch size - gradients are averaged over more samples*
+
+### B200 System Metrics Screenshot:
+
+![B200 Notebook Metrics](b200_metrics.png)
+
+**Key observations from metrics:**
+- GPU Memory: Jumped to **~130GB** once training started
+- GPU Utilization: Peaks at **100%** during forward/backward pass
+- GPU Temperature: Very cool at **~45°C** (B200 has excellent cooling)
+- CPU: Low usage (~2 cores) - GPU-bound workload
+- RAM: Stable at 5GB
+
+### Modal.com Training Screenshot:
+
+![B200 Training Output](b200_training.png)
+
+**Training output shows:**
+- Model: 5,021,952 params (medium size)
+- Train sequences: 198,581
+- Val sequences: 24,822
+- Batches/epoch: 194 (vs 1,003 on L40S!)
+- Speed: 1.49 it/s (slower per-iteration, but 5x fewer iterations)
+
+### Updated GPU Comparison:
+
+| GPU | VRAM | $/hr | Batch | Batches/Epoch | Time/Epoch | 50 Epochs | **Total Cost** |
+|-----|------|------|-------|---------------|------------|-----------|----------------|
+| T4 | 15 GB | FREE | 64 | 3,103 | ~28 min | ~23 hrs | FREE |
+| L40S | 48 GB | $2.07 | 198 | 1,003 | ~7.5 min | ~6.2 hrs | **~$13** |
+| H100 | 80 GB | $3.95 | ~400 | ~500 | ~3 min | ~2.5 hrs | **~$10** |
+| **B200** | 192 GB | $6.73 | 1024 | 194 | ~2.2 min | ~1.8 hrs | **~$12** |
+
+### Insights:
+
+1. **B200 VRAM is massive** - 192GB allows batch 1024+ easily
+2. **Temperature stays cool** - B200 datacenter GPU has great thermal design
+3. **Batch size tradeoff**: Larger batch = fewer iterations but higher memory
+4. **Cost similar to H100** - B200 finishes faster at slightly higher rate
+5. **No multiprocessing errors** - `num_workers=0` fixed DataLoader issues
+
+---
+
+*Entry logged: 2026-01-22 - B200 training in progress!*
+
+---

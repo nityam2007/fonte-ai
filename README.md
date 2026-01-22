@@ -8,7 +8,7 @@ An AI-powered font generation system that learns from existing fonts and generat
 [![Fonts](https://img.shields.io/badge/Fonts-3813-blue)](https://github.com/nityam2007/fonte-ai)
 [![Glyphs](https://img.shields.io/badge/Glyphs-270252-purple)](https://github.com/nityam2007/fonte-ai)
 [![Sequences](https://img.shields.io/badge/Sequences-248K-orange)](https://github.com/nityam2007/fonte-ai)
-[![Training](https://img.shields.io/badge/Training-In%20Progress%20🚀-brightgreen)](https://github.com/nityam2007/fonte-ai)
+[![Training](https://img.shields.io/badge/Training-B200%20GPU%20🚀-brightgreen)](https://github.com/nityam2007/fonte-ai)
 [![License](https://img.shields.io/badge/License-Proprietary-red)](LICENSE)
 
 ## 📖 Documentation
@@ -119,7 +119,7 @@ python scripts/preprocess_dataset.py --turbo
 | Total Sequences | 248,227 |
 | Vocabulary Size | 1,105 tokens |
 | Max Sequence Length | 512 |
-| Model Parameters | ~12M (medium) |
+| Model Parameters | ~5M (medium) |
 
 **Tokenized Dataset (Git LFS):**
 | Split | Sequences | Size |
@@ -127,6 +127,29 @@ python scripts/preprocess_dataset.py --turbo
 | Train | 198,581 | 379 MB |
 | Val | 24,822 | 47 MB |
 | Test | 24,824 | 47 MB |
+
+### Phase 2B: Training 🔄 IN PROGRESS
+
+**Currently training on NVIDIA B200 (192GB VRAM)!**
+
+| Metric | Value |
+|--------|-------|
+| GPU | NVIDIA B200 |
+| VRAM | 192 GB |
+| Batch Size | 1024 |
+| VRAM Used | ~130 GB |
+| Time/Epoch | ~2.2 min |
+| Cost | $6.73/hour |
+
+**Training Progress:**
+| Epoch | Train Loss | Val Loss |
+|-------|------------|----------|
+| 1 | 15.27 | 6.49 |
+| 2 | 6.67 | 5.51 |
+
+![B200 GPU Metrics](b200_metrics.png)
+
+![B200 Training Output](b200_training.png)
 
 ---
 
@@ -262,7 +285,7 @@ python scripts/preprocess_dataset.py --canvas-size 256 --turbo
 - [x] **Phase 2A**: Tokenization (248K sequences, 1,105 vocab)
 - [x] **Phase 2A**: Model Architecture (Transformer, ~12M params)
 - [x] **Phase 2A**: Training Pipeline (Colab + Git LFS)
-- [🔄] **Phase 2B**: Training (IN PROGRESS - T4 GPU, ~28min/epoch)
+- [🔄] **Phase 2B**: Training (IN PROGRESS - B200 GPU, ~2.2min/epoch)
 - [ ] **Phase 3**: Evaluation & Generation Quality
 - [ ] **Phase 4**: Font Export (SVG → TTF)
 

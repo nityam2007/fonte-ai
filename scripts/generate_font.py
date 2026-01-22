@@ -171,19 +171,27 @@ class FonteModel(nn.Module):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Token Mappings
+# Token Mappings (from TOKENIZED/vocabulary.json)
 # ═══════════════════════════════════════════════════════════════════════════
 
+# Vocabulary Layout:
+# 0-3:     Special tokens (PAD=0, SOS=1, EOS=2, UNK=3)
+# 4-23:    Commands (M, m, L, l, H, h, V, v, C, c, S, s, Q, q, T, t, A, a, Z, z)
+# 24-28:   Styles (serif=24, sans-serif=25, monospace=26, handwriting=27, display=28)
+# 29-104:  Characters (A-Z=29-54, a-z=55-80, 0-9=81-90, special=91-104)
+# 105-1104: Coordinates (0-999)
+
 STYLE_IDS = {
-    'serif': 28,
-    'sans-serif': 29,
-    'monospace': 30,
-    'handwriting': 31,
-    'display': 32,
+    'serif': 24,
+    'sans-serif': 25,
+    'monospace': 26,
+    'handwriting': 27,
+    'display': 28,
 }
 
-CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-CHAR_IDS = {char: 33 + i for i, char in enumerate(CHARS)}
+# Character mappings (matches vocabulary.json)
+CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*()-+=[]"
+CHAR_IDS = {char: 29 + i for i, char in enumerate(CHARS)}
 
 # Reverse mappings
 ID_TO_STYLE = {v: k for k, v in STYLE_IDS.items()}
@@ -193,6 +201,10 @@ ID_TO_CHAR = {v: k for k, v in CHAR_IDS.items()}
 COMMANDS = ['M', 'm', 'L', 'l', 'H', 'h', 'V', 'v', 'C', 'c', 'S', 's', 'Q', 'q', 'T', 't', 'A', 'a', 'Z', 'z']
 COMMAND_IDS = {cmd: 4 + i for i, cmd in enumerate(COMMANDS)}
 ID_TO_COMMAND = {v: k for k, v in COMMAND_IDS.items()}
+
+# Coordinate token range
+COORD_START = 105
+COORD_END = 1104
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -204,8 +216,8 @@ def tokens_to_svg_path(tokens: List[int], canvas_size: int = 128) -> str:
     path_parts = []
     i = 0
     
-    # Skip SOS, style, char tokens
-    while i < len(tokens) and tokens[i] < 100:
+    # Skip SOS (1), style (24-28), char (29-104) tokens
+    while i < len(tokens) and (tokens[i] <= 3 or (24 <= tokens[i] <= 104)):
         i += 1
     
     while i < len(tokens):
@@ -223,8 +235,8 @@ def tokens_to_svg_path(tokens: List[int], canvas_size: int = 128) -> str:
             continue
         
         # Coordinate token (105-1104) -> 0-999
-        if 105 <= token <= 1104:
-            coord = token - 105
+        if COORD_START <= token <= COORD_END:
+            coord = token - COORD_START
             # Scale from 0-999 to 0-canvas_size
             scaled = coord * canvas_size / 1000
             path_parts.append(f"{scaled:.1f}")

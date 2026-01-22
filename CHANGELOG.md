@@ -496,3 +496,65 @@ TRAINED/
 *Note: These are for seq_length=512, d_model=256, n_layers=6*
 
 ---
+
+## [2026-01-22] - Upgraded to B200 GPU
+
+### Why Upgrade
+- L40S batch 198 was stable but slow (~7.5 min/epoch)
+- B200 has 192GB VRAM - massive batch sizes possible
+- Faster total training despite higher hourly cost
+
+### Platform: Modal.com B200
+| Spec | Value |
+|------|-------|
+| GPU | NVIDIA B200 |
+| VRAM | 192 GB |
+| Cost | $6.73/hour |
+| CPU | 2 cores |
+| RAM | 8 GB |
+
+### Training Metrics Comparison
+
+| Metric | L40S | B200 |
+|--------|------|------|
+| VRAM | 48 GB | 192 GB |
+| Batch Size | 198 | **1024** |
+| VRAM Used | 40 GB | **~130 GB** |
+| Batches/Epoch | 1,003 | **194** |
+| Time/Epoch | 7.5 min | **~2.2 min** |
+| GPU Temp | ~70°C | ~45°C |
+
+### Training Progress (B200)
+| Epoch | Train Loss | Val Loss | Time |
+|-------|------------|----------|------|
+| 1 | 15.27 | 6.49 | 2:13 |
+| 2 | 6.67 | 5.51 | 2:14 |
+
+### Screenshots
+
+![alt text](image-1.png)
+
+![alt text](image-2.png)
+
+See `b200_metrics.png` and `b200_training.png` for:
+- GPU memory usage (~130GB during training)
+- GPU utilization (100% peaks)
+- Training output with loss curves
+
+### Updated GPU Comparison
+
+| GPU | VRAM | $/hr | Batch | Time/Epoch | 50 Epochs | **Total Cost** |
+|-----|------|------|-------|------------|-----------|----------------|
+| T4 | 15 GB | FREE | 64 | ~28 min | ~23 hrs | FREE |
+| L40S | 48 GB | $2.07 | 198 | ~7.5 min | ~6.2 hrs | ~$13 |
+| H100 | 80 GB | $3.95 | ~400 | ~3 min | ~2.5 hrs | ~$10 |
+| **B200** | **192 GB** | **$6.73** | **1024** | **~2.2 min** | **~1.8 hrs** | **~$12** |
+
+### Notebook Updated
+- `notebooks/FONTe_AI_Training modal.com.ipynb` - B200 optimized
+  - Uses git clone to get repo + data
+  - Batch size 1024
+  - `num_workers=0` to avoid DataLoader errors
+  - Saves checkpoint every epoch
+
+---
