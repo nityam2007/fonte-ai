@@ -25,6 +25,13 @@ Thumbs.db
 # These are large and can be regenerated from FONTS/
 DATASET/
 DATASET_NORMALIZED/
+FONTS/
+
+# Tokenized data (regenerable, large binary files)
+TOKENIZED/*.bin
+TOKENIZED/*.json
+!TOKENIZED/vocabulary.json
+!TOKENIZED/config.json
 
 # Logs
 *.log

@@ -1,0 +1,17 @@
+{
+  "max_seq_length": 512,
+  "min_seq_length": 10,
+  "vocab_size": 1105,
+  "total_sequences": 248227,
+  "train_count": 198581,
+  "val_count": 24822,
+  "test_count": 24824,
+  "style_counts": {
+    "display": 21033,
+    "handwriting": 4309,
+    "monospace": 16520,
+    "sans-serif": 155744,
+    "serif": 50621
+  },
+  "processing_time": 49.88068175315857
+}
