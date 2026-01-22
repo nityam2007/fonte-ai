@@ -1,10 +1,40 @@
 # FONTe AI - AI Font Generator
 
-> ⚠️ **PROPRIETARY SOFTWARE** - All Rights Reserved
+> ## 🚨 **KNOWN BUG - AGENT OVERSIGHT** 🚨
+> 
+> **The `<NEG>` token was NEVER added to vocabulary!**
+> 
+> - The tokenizer uses `<NEG>` for negative coordinates
+> - But `_build_vocabulary()` never includes it → encoded as `<UNK>` (token 3)
+> - **Result:** Training data corrupted with UNK tokens where negatives should be
+> - **Cost:** $40 USD and 47 epochs before discovery
+> - **Agent claimed "verification complete"** without running end-to-end test
+> 
+> **Workaround Applied:** `generate_font.py` now interprets UNK as negative sign
+> 
+> See [RESEARCH.md](RESEARCH.md#2b9-critical-bug-discovery---agent-oversight-) for details
+
+---
+
+> ## ❌ **PHASE 2B RESULT: FAILED** ❌
 >
-> This repository is public for **viewing and educational purposes only**.
-> No license is granted for copying, modification, distribution, or commercial use.
-> See [LICENSE](LICENSE) for full terms.
+> **Generated glyphs are abstract blobs, NOT recognizable letters!**
+>
+> | Problem | Cause |
+> |---------|-------|
+> | Abstract shapes instead of letters | Too many fonts (3,813) |
+> | UNK token contamination | Missing `<NEG>` in vocabulary |
+> | Model can't find patterns | Extreme font variety |
+>
+> **Next Iteration:** Train on **100 fonts** instead of 3,813
+>
+> See [RESEARCH.md](RESEARCH.md#2b12-visual-evaluation---glyphs-not-recognizable-) for analysis
+
+---
+
+> 📜 **Open Source** - Dual Licensed under GPLv3 and Apache 2.0
+>
+> You may choose either license. See [LICENSE](LICENSE) for details.
 
 [github.com/nityam2007/fonte-ai](https://github.com/nityam2007/fonte-ai)
 
@@ -15,7 +45,7 @@ An AI-powered font generation system that learns from existing fonts and generat
 [![Glyphs](https://img.shields.io/badge/Glyphs-270252-purple)](https://github.com/nityam2007/fonte-ai)
 [![Sequences](https://img.shields.io/badge/Sequences-248K-orange)](https://github.com/nityam2007/fonte-ai)
 [![Training](https://img.shields.io/badge/Training-B200%20GPU%20🚀-brightgreen)](https://github.com/nityam2007/fonte-ai)
-[![License](https://img.shields.io/badge/License-Proprietary-red)](LICENSE)
+[![License](https://img.shields.io/badge/License-GPLv3%20%2B%20Apache%202.0-blue)](LICENSE)
 
 ## 📖 Documentation
 

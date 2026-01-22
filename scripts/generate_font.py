@@ -117,9 +117,14 @@ class FonteModel(nn.Module):
         return {'logits': logits}
 
     @torch.no_grad()
-    def generate(self, style_id: int, char_id: int, max_length: int = 256, 
-                 temperature: float = 1.0, top_k: int = 50) -> List[int]:
-        """Generate tokens for a single glyph."""
+    def generate(self, style_id: int, char_id: int, max_length: int = 512, 
+                 temperature: float = 1.0, top_k: int = 50,
+                 repetition_penalty: float = 1.2) -> List[int]:
+        """Generate tokens for a single glyph.
+        
+        Args:
+            repetition_penalty: Penalty for repeating recent tokens. >1.0 discourages repetition.
+        """
         self.eval()
         device = next(self.parameters()).device
         tokens = torch.tensor([[self.config.sos_token_id, style_id, char_id]], device=device)
@@ -127,6 +132,15 @@ class FonteModel(nn.Module):
         for _ in range(max_length - 3):
             outputs = self.forward(tokens)
             logits = outputs['logits'][:, -1, :] / temperature
+            
+            # Apply repetition penalty to recently generated tokens
+            if repetition_penalty != 1.0:
+                # Get last 20 tokens (or all if less)
+                recent_tokens = tokens[0, -20:].tolist()
+                for token_id in set(recent_tokens):
+                    # Don't penalize special tokens (0-3) or commands (4-23)
+                    if token_id >= 24:  # Only penalize coord/style/char tokens
+                        logits[0, token_id] /= repetition_penalty
             
             if top_k > 0:
                 indices_to_remove = logits < torch.topk(logits, top_k)[0][..., -1, None]
@@ -192,9 +206,15 @@ COORD_END = 1104
 # ═══════════════════════════════════════════════════════════════════════════
 
 def tokens_to_svg_path(tokens: List[int], canvas_size: int = 128) -> str:
-    """Convert token sequence to SVG path data."""
+    """Convert token sequence to SVG path data.
+    
+    Note: Due to a tokenization bug, <NEG> tokens were encoded as <UNK> (token 3)
+    during training. The model learned to output token 3 for negative coordinates.
+    We interpret UNK followed by a coordinate as a negative value.
+    """
     path_parts = []
     i = 0
+    next_is_negative = False  # Track if next coord should be negative
     
     # Skip SOS (1), style (24-28), char (29-104) tokens at the start
     while i < len(tokens) and (tokens[i] <= 3 or (24 <= tokens[i] <= 104)):
@@ -207,8 +227,15 @@ def tokens_to_svg_path(tokens: List[int], canvas_size: int = 128) -> str:
         if token == 0 or token == 2:
             break
         
-        # UNK (3) or SOS (1) - skip but continue (model artifact)
-        if token == 1 or token == 3:
+        # UNK (3) - treat as negative sign for next coordinate!
+        # This is because <NEG> was encoded as <UNK> during training
+        if token == 3:
+            next_is_negative = True
+            i += 1
+            continue
+        
+        # SOS (1) - skip
+        if token == 1:
             i += 1
             continue
         
@@ -216,6 +243,7 @@ def tokens_to_svg_path(tokens: List[int], canvas_size: int = 128) -> str:
         if 4 <= token <= 23:
             cmd = ID_TO_COMMAND.get(token, '')
             path_parts.append(cmd)
+            next_is_negative = False  # Reset after command
             i += 1
             continue
         
@@ -229,6 +257,10 @@ def tokens_to_svg_path(tokens: List[int], canvas_size: int = 128) -> str:
             coord = token - COORD_START
             # Scale from 0-999 to 0-canvas_size
             scaled = coord * canvas_size / 1000
+            # Apply negative sign if UNK preceded this coordinate
+            if next_is_negative:
+                scaled = -scaled
+                next_is_negative = False
             path_parts.append(f"{scaled:.1f}")
             i += 1
             continue
@@ -253,7 +285,8 @@ def create_svg(path_data: str, canvas_size: int = 128, char: str = '?', style: s
 # ═══════════════════════════════════════════════════════════════════════════
 
 def generate_glyph(model: FonteModel, style: str, char: str, 
-                   temperature: float = 0.8, top_k: int = 50) -> dict:
+                   temperature: float = 0.8, top_k: int = 50, max_length: int = 512,
+                   repetition_penalty: float = 1.2) -> dict:
     """Generate a single glyph."""
     if style not in STYLE_IDS:
         raise ValueError(f"Unknown style: {style}. Choose from: {list(STYLE_IDS.keys())}")
@@ -263,7 +296,9 @@ def generate_glyph(model: FonteModel, style: str, char: str,
     style_id = STYLE_IDS[style]
     char_id = CHAR_IDS[char]
     
-    tokens = model.generate(style_id, char_id, temperature=temperature, top_k=top_k)
+    tokens = model.generate(style_id, char_id, max_length=max_length, 
+                           temperature=temperature, top_k=top_k,
+                           repetition_penalty=repetition_penalty)
     path_data = tokens_to_svg_path(tokens)
     svg = create_svg(path_data, char=char, style=style)
     
@@ -306,6 +341,10 @@ def main():
                         help='Generation temperature (default: 0.8)')
     parser.add_argument('--top-k', '-k', type=int, default=50,
                         help='Top-k sampling (default: 50)')
+    parser.add_argument('--max-length', '-l', type=int, default=512,
+                        help='Maximum tokens per glyph (default: 512)')
+    parser.add_argument('--repetition-penalty', '-r', type=float, default=1.2,
+                        help='Repetition penalty for coords (default: 1.2, >1 discourages repeats)')
     parser.add_argument('--list-models', action='store_true',
                         help='List available models in TRAINED/ directory')
     parser.add_argument('--device', type=str, default='auto',
@@ -356,7 +395,8 @@ def main():
     
     # Generate glyphs
     print(f"\n🎨 Generating {len(chars)} glyph(s) with style '{args.style}'...")
-    print(f"   Temperature: {args.temperature}, Top-k: {args.top_k}")
+    print(f"   Temperature: {args.temperature}, Top-k: {args.top_k}, Max-length: {args.max_length}")
+    print(f"   Repetition penalty: {args.repetition_penalty}")
     
     results = []
     for char in chars:
@@ -364,7 +404,9 @@ def main():
             result = generate_glyph(
                 model, args.style, char,
                 temperature=args.temperature,
-                top_k=args.top_k
+                top_k=args.top_k,
+                max_length=args.max_length,
+                repetition_penalty=args.repetition_penalty
             )
             results.append(result)
             
