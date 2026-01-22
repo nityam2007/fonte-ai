@@ -4,9 +4,10 @@
 
 An AI-powered font generation system that learns from existing fonts and generates new, unique typefaces.
 
-[![Status](https://img.shields.io/badge/Status-Phase%201.5%20Complete-green)](https://github.com/nityam2007/fonte-ai)
+[![Status](https://img.shields.io/badge/Status-Phase%202A%20Complete-green)](https://github.com/nityam2007/fonte-ai)
 [![Fonts](https://img.shields.io/badge/Fonts-3813-blue)](https://github.com/nityam2007/fonte-ai)
 [![Glyphs](https://img.shields.io/badge/Glyphs-270252-purple)](https://github.com/nityam2007/fonte-ai)
+[![Sequences](https://img.shields.io/badge/Sequences-248K-orange)](https://github.com/nityam2007/fonte-ai)
 [![License](https://img.shields.io/badge/License-Proprietary-red)](LICENSE)
 
 ## 📖 Documentation
@@ -110,6 +111,22 @@ python scripts/preprocess_dataset.py --turbo
 | Val | 380 |
 | Test | 384 |
 
+### Phase 2A: Tokenization & Model ✅ COMPLETE
+
+| Metric | Value |
+|--------|-------|
+| Total Sequences | 248,227 |
+| Vocabulary Size | 1,105 tokens |
+| Max Sequence Length | 512 |
+| Model Parameters | ~12M (medium) |
+
+**Tokenized Dataset (Git LFS):**
+| Split | Sequences | Size |
+|-------|-----------|------|
+| Train | 198,581 | 379 MB |
+| Val | 24,822 | 47 MB |
+| Test | 24,824 | 47 MB |
+
 ---
 
 ## 📁 Project Structure
@@ -121,53 +138,77 @@ FONTe AI/
 ├── CHANGELOG.md              # Change history (append-only)
 ├── RULES.md                  # Project conventions
 ├── requirements.txt          # Python dependencies
-├── FONTS/                    # Source fonts (Google Fonts)
-│   └── fonts-main/
-│       ├── ofl/              # Open Font License
-│       ├── apache/           # Apache 2.0
-│       └── ufl/              # Ubuntu Font License
-├── DATASET/                  # Raw extracted SVG glyphs (270K files)
-│   ├── {font_name}/
-│   │   ├── metadata.json
-│   │   └── *.svg
-│   └── metadata.json         # Global metadata
-├── DATASET_NORMALIZED/       # Preprocessed for training
-│   ├── {style}/              # serif, sans-serif, etc.
-│   │   └── {font_name}/
-│   │       ├── metadata.json
-│   │       └── *.svg         # 128×128 normalized
-│   ├── train.json            # Training split
-│   ├── val.json              # Validation split
-│   ├── test.json             # Test split
-│   └── styles.json           # Style classification
+├── .gitattributes            # Git LFS configuration
+├── FONTS/                    # Source fonts (NOT in repo)
+├── DATASET/                  # Raw SVG glyphs (NOT in repo)
+├── DATASET_NORMALIZED/       # Preprocessed SVGs (NOT in repo)
+├── TOKENIZED/                # Training data (Git LFS) ✅
+│   ├── train.bin             # 198K sequences (379 MB)
+│   ├── val.bin               # 24K sequences (47 MB)
+│   ├── test.bin              # 24K sequences (47 MB)
+│   ├── vocabulary.json       # 1,105 token vocabulary
+│   └── config.json           # Dataset config
+├── model/
+│   ├── fonte_model.py        # Transformer architecture
+│   └── train.py              # Training script
 ├── scripts/
 │   ├── ttf_to_svg.py         # Font extraction
-│   └── preprocess_dataset.py # Normalization & classification
+│   ├── preprocess_dataset.py # Normalization
+│   ├── svg_tokenizer.py      # SVG path tokenization
+│   └── create_dataset.py     # Dataset pipeline
+├── notebooks/
+│   └── FONTe_AI_Training.ipynb  # Colab training
 └── aidata/
-    └── planv1.md             # AI model roadmap
+    ├── planv1.md             # Original roadmap
+    └── planv1.5.md           # SVG-to-SVG architecture
 ```
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Install Dependencies
+### Option A: Train in Google Colab (Recommended)
 ```bash
-pip install fonttools
+# Just open the notebook in Colab!
+# It will clone the repo and pull training data via Git LFS
+```
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nityam2007/fonte-ai/blob/master/notebooks/FONTe_AI_Training.ipynb)
+
+### Option B: Local Development
+
+#### 1. Clone Repository
+```bash
+git lfs install
+git clone https://github.com/nityam2007/fonte-ai.git
+cd fonte-ai
+git lfs pull  # Download training data (442 MB)
 ```
 
-### 2. Extract Glyphs (TURBO Mode)
+#### 2. Install Dependencies
 ```bash
+pip install fonttools torch
+```
+
+#### 3. Train Model
+```bash
+python model/train.py --epochs 50 --batch-size 64
+```
+
+### Option C: Regenerate Dataset from Scratch
+
+```bash
+# Clone Google Fonts (2 GB)
+git clone --depth 1 https://github.com/google/fonts.git FONTS/fonts-main
+
+# Extract SVGs (2 min)
 python scripts/ttf_to_svg.py --turbo
-```
 
-### 3. Preprocess Dataset
-```bash
+# Preprocess (1.5 min)
 python scripts/preprocess_dataset.py --turbo
-```
 
-### 4. View Results
-Open any `DATASET/{font_name}/preview.html` in browser.
+# Tokenize (1 min)
+python scripts/create_dataset.py --workers 6
+```
 
 ---
 
@@ -217,9 +258,12 @@ python scripts/preprocess_dataset.py --canvas-size 256 --turbo
 
 - [x] **Phase 1**: Dataset Extraction (3,824 fonts → 270K SVGs)
 - [x] **Phase 1.5**: Preprocessing (normalize, classify, split)
-- [ ] **Phase 2**: Model Architecture (SVG-to-SVG, CPU-optimized)
-- [ ] **Phase 3**: Training & Evaluation
-- [ ] **Phase 4**: Font Generation & Export
+- [x] **Phase 2A**: Tokenization (248K sequences, 1,105 vocab)
+- [x] **Phase 2A**: Model Architecture (Transformer, ~12M params)
+- [x] **Phase 2A**: Training Pipeline (Colab + Git LFS)
+- [ ] **Phase 2B**: Training & Hyperparameter Tuning
+- [ ] **Phase 3**: Evaluation & Generation Quality
+- [ ] **Phase 4**: Font Export (SVG → TTF)
 
 ---
 

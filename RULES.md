@@ -1,26 +1,41 @@
 # Project Rules & Conventions
 
-## � Data Management Rules
+## 📦 Data Management Rules
 
-### Rule #6: No Large Files in Git
+### Rule #6: Git LFS for Large Files
+
+Large binary and data files are tracked via Git LFS:
+
+| Pattern | Location | Why LFS |
+|---------|----------|---------|
+| `*.bin` | `TOKENIZED/` | Binary training data (379 MB) |
+| `TOKENIZED/*.json` | `TOKENIZED/` | Large JSON files |
+
+**Setup Git LFS:**
+```bash
+git lfs install
+git lfs pull  # After cloning
+```
+
+### Rule #7: No Raw Data in Git
 
 The following directories are **excluded from Git** (see `.gitignore`):
 
-| Directory | Reason |
-|-----------|--------|
-| `FONTS/` | Clone from Google Fonts separately |
-| `DATASET/` | Regenerable via `ttf_to_svg.py` |
-| `DATASET_NORMALIZED/` | Regenerable via `preprocess_dataset.py` |
-| `.venv/` | Virtual environment (recreate locally) |
+| Directory | Size | Reason |
+|-----------|------|--------|
+| `FONTS/` | ~2 GB | Clone from Google Fonts separately |
+| `DATASET/` | ~500 MB | Regenerable via `ttf_to_svg.py` |
+| `DATASET_NORMALIZED/` | ~600 MB | Regenerable via `preprocess_dataset.py` |
+| `.venv/` | variable | Virtual environment (recreate locally) |
 
-### Rule #7: Reproducibility First
+### Rule #8: Reproducibility First
 
 - All datasets must be **regenerable from scripts**
-- Never upload generated data to Git
+- Never upload raw generated data to Git (use LFS for processed data)
 - Document exact commands to reproduce in README
 - Use fixed random seeds for reproducible splits
 
-### Rule #8: Data Source Attribution
+### Rule #9: Data Source Attribution
 
 - Fonts are sourced from [Google Fonts](https://github.com/google/fonts)
 - Original licenses (OFL, Apache 2.0, UFL) apply to font files
@@ -28,7 +43,25 @@ The following directories are **excluded from Git** (see `.gitignore`):
 
 ---
 
-## �📜 CHANGELOG Rules
+## 📁 Directory Structure Rules
+
+```
+FONTe AI/
+├── CHANGELOG.md      # Append-only change log
+├── RULES.md          # This file (project rules)
+├── README.md         # Project overview
+├── requirements.txt  # Python dependencies
+├── .gitattributes    # Git LFS configuration
+├── FONTS/            # Source fonts (NOT in Git)
+├── DATASET/          # Raw SVG glyphs (NOT in Git)
+├── DATASET_NORMALIZED/  # Preprocessed (NOT in Git)
+├── TOKENIZED/        # Training data (Git LFS) ✅
+├── model/            # Model architecture & training
+├── scripts/          # Utility scripts
+├── notebooks/        # Colab notebooks
+├── aidata/           # AI model plans and docs
+└── checkpoints/      # Saved models (future)
+```
 
 ### Rule #1: APPEND-ONLY Policy
 
@@ -98,18 +131,7 @@ Once a changelog entry is written:
 
 ## 📁 Directory Structure Rules
 
-```
-FONTe AI/
-├── CHANGELOG.md      # Append-only change log
-├── RULES.md          # This file (project rules)
-├── README.md         # Project overview
-├── requirements.txt  # Python dependencies
-├── FONTS/            # Source fonts (read-only after setup)
-├── DATASET/          # Generated SVG glyphs
-├── scripts/          # Utility scripts
-├── aidata/           # AI model plans and docs
-└── models/           # Trained models (future)
-```
+(See main structure in README.md - kept in sync)
 
 ---
 
@@ -117,8 +139,9 @@ FONTe AI/
 
 1. **Source fonts** in `FONTS/` should not be modified
 2. **Generated data** in `DATASET/` can be regenerated from source
-3. **Metadata files** must be kept in sync with SVG files
-4. **Changelog** is the source of truth for project history
+3. **Training data** in `TOKENIZED/` is tracked via Git LFS
+4. **Metadata files** must be kept in sync with SVG files
+5. **Changelog** is the source of truth for project history
 
 ---
 

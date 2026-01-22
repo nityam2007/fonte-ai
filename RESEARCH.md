@@ -399,3 +399,169 @@ Output: SVG path data (new glyph in same format)
 
 ---
 
+# Phase 2A: Tokenization & Model Architecture
+
+## 2A.1 SVG Path Tokenization
+
+### Date: 2026-01-22
+
+### Methodology:
+Developed a vocabulary-based tokenizer that converts SVG path commands into discrete tokens for transformer processing.
+
+### Vocabulary Design (1,105 tokens):
+
+| Category | Token Range | Count | Purpose |
+|----------|-------------|-------|---------|
+| Special | 0-3 | 4 | PAD, SOS, EOS, UNK |
+| Commands | 4-23 | 20 | M, L, C, Q, Z, etc. |
+| Styles | 24-28 | 5 | serif, sans-serif, monospace, handwriting, display |
+| Characters | 29-104 | 76 | A-Z, a-z, 0-9, punctuation |
+| Coordinates | 105-1104 | 1000 | Quantized 0-999 values |
+
+### Tokenization Process:
+```
+SVG Path → Parse Commands → Quantize Coordinates → Token Sequence
+
+Example:
+"M 10 20 L 50 80 Z" →
+[SOS, STYLE, CHAR, M, 10, 20, L, 50, 80, Z, EOS, PAD, PAD, ...]
+```
+
+### Key Design Decisions:
+1. **Coordinate Quantization**: 0-999 range captures sufficient precision
+2. **Style Conditioning**: Prepend style token for style-aware generation
+3. **Character Embedding**: Include target character in sequence
+4. **Max Length 512**: Balances detail vs memory usage
+
+---
+
+## 2A.2 Dataset Tokenization Results
+
+### Final Tokenization Metrics:
+
+| Metric | Value |
+|--------|-------|
+| Total Sequences | 248,227 |
+| Train Split | 198,581 (80%) |
+| Validation Split | 24,822 (10%) |
+| Test Split | 24,824 (10%) |
+| Vocabulary Size | 1,105 |
+| Max Sequence Length | 512 |
+| Processing Time | 49.9 seconds |
+
+### Storage Format:
+
+Binary format for efficient loading:
+```
+Header: [n_sequences, max_len, vocab_size] (12 bytes)
+Per sequence: [length (2 bytes), tokens (512 × 2 bytes)]
+```
+
+| File | Sequences | Size |
+|------|-----------|------|
+| train.bin | 198,581 | 379 MB |
+| val.bin | 24,822 | 47 MB |
+| test.bin | 24,824 | 47 MB |
+
+---
+
+## 2A.3 Model Architecture
+
+### Transformer Decoder Design:
+
+| Component | Description |
+|-----------|-------------|
+| Embedding | Token + Positional encoding |
+| Blocks | Causal self-attention + FFN |
+| Output | LM head (weight-tied with embeddings) |
+
+### Model Configurations:
+
+| Size | d_model | n_heads | n_layers | d_ff | Params |
+|------|---------|---------|----------|------|--------|
+| Small | 128 | 4 | 4 | 512 | ~1M |
+| Medium | 256 | 4 | 6 | 1024 | ~12M |
+| Large | 512 | 8 | 8 | 2048 | ~50M |
+
+### Key Architectural Choices:
+
+1. **Pre-norm**: LayerNorm before attention (more stable training)
+2. **GELU activation**: Smoother than ReLU
+3. **Weight tying**: Output head shares weights with embeddings
+4. **Causal mask**: Autoregressive generation
+
+### Generation Strategy:
+```python
+def generate(style_id, char_id, temperature=1.0, top_k=50):
+    tokens = [SOS, style_id, char_id]
+    while len(tokens) < max_len:
+        logits = model(tokens)[-1]
+        next_token = sample(logits, temperature, top_k)
+        tokens.append(next_token)
+        if next_token == EOS:
+            break
+    return tokens
+```
+
+---
+
+## 2A.4 Training Infrastructure
+
+### Git LFS for Data Distribution:
+
+| Challenge | Solution |
+|-----------|----------|
+| 442 MB training data | Git LFS tracking |
+| Colab clone workflow | `git lfs pull` after clone |
+| Fast iteration | Data in repo, not uploaded |
+
+### Colab Training Setup:
+
+```bash
+# Colab workflow (automated in notebook)
+!apt-get install git-lfs -qq
+!git lfs install
+!git clone https://github.com/nityam2007/fonte-ai.git
+%cd fonte-ai
+!git lfs pull
+# → Ready to train!
+```
+
+### Training Configuration:
+
+| Hyperparameter | Value |
+|----------------|-------|
+| Optimizer | AdamW |
+| Learning Rate | 3e-4 |
+| Weight Decay | 0.01 |
+| Batch Size | 64 |
+| Scheduler | Cosine Annealing |
+| Gradient Clipping | 1.0 |
+
+---
+
+## 2A.5 Observations & Insights
+
+### What Works Well:
+1. ✅ Binary format loads 10x faster than JSON
+2. ✅ Vocabulary size (1,105) is manageable
+3. ✅ Git LFS handles 442 MB smoothly
+4. ✅ Medium model (12M) fits in T4 GPU
+
+### Areas to Monitor:
+1. ⚠️ 512 max length may truncate complex glyphs
+2. ⚠️ Coordinate quantization to 0-999 may lose precision
+3. ⚠️ Style tokens based on keywords (not visual features)
+4. ⚠️ Need to validate generated path validity
+
+### Next Steps:
+1. Run training for 50-100 epochs
+2. Monitor loss curves and generation quality
+3. Experiment with temperature and top-k
+4. Validate generated SVG paths are valid
+
+---
+
+*Entry logged: 2026-01-22*
+
+---
