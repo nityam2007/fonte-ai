@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+# Note: Keeping DATASET and DATASET_NORMALIZED in .gitignore
+# These are large and can be regenerated from FONTS/
+DATASET/
+DATASET_NORMALIZED/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Model outputs (add when training starts)
+# checkpoints/
+# models/
+# outputs/

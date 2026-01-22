@@ -1,0 +1,14 @@
+# FONTe AI - Dependencies
+
+# Core font processing
+fonttools>=4.0.0      # Font parsing and glyph extraction
+
+# Optional but recommended
+pillow>=9.0.0         # Image processing (for raster preview)
+cairosvg>=2.5.0       # SVG to PNG conversion (for preview)
+svgwrite>=1.4.0       # SVG creation utilities
+
+# For AI training (Phase 2)
+# torch>=2.0.0
+# diffusers>=0.20.0
+# accelerate>=0.20.0
