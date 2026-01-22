@@ -383,34 +383,61 @@ Total: 442 MB via Git LFS
 ## [2026-01-22] - Phase 2B: Training Started! 🚀
 
 ### Status
-**TRAINING IN PROGRESS** on Google Colab T4 GPU
+**TRAINING IN PROGRESS** on Modal L40S GPU
 
-### Training Metrics (Live)
+### Training Metrics (Actual)
 | Metric | Value |
 |--------|-------|
-| Platform | Google Colab (T4 GPU) |
-| Batches | 3,103 per epoch |
-| Batch Size | 64 |
-| Speed | ~1.79 it/s |
-| ETA per Epoch | ~28 minutes |
-| Initial Loss | 5.58 |
+| Platform | Modal (L40S GPU, 48GB VRAM) |
+| Batches | 1,003 per epoch |
+| Batch Size | 198 |
+| Speed | ~2.24 it/s |
+| ETA per Epoch | ~7.5 minutes |
+| Initial Loss | 5.68 |
+| VRAM Usage | **40 GB / 48 GB (83%)** |
+| Cost | $2.07/hr |
 
 ### Training Configuration
 ```python
 EPOCHS = 50
-BATCH_SIZE = 64
+BATCH_SIZE = 198          # Max for L40S without OOM
 LEARNING_RATE = 3e-4
 MODEL = "medium" (~12M params)
 OPTIMIZER = AdamW (weight_decay=0.01)
 SCHEDULER = CosineAnnealingLR
 ```
 
+### ⚠️ Important: Memory Usage Reality
+
+Our initial estimates were WRONG. Actual memory breakdown:
+
+| Component | Memory |
+|-----------|--------|
+| Model weights | ~50 MB |
+| Gradients | ~50 MB |
+| Optimizer states (AdamW) | ~100 MB |
+| **Attention matrices** | ~5-10 GB per layer |
+| Activations (6 layers × batch × seq 512) | **~30+ GB** |
+
+**Key Insight**: Transformer memory scales with `batch_size × seq_length² × n_layers`
+
+### GPU Comparison (Actual)
+
+| GPU | VRAM | Max Batch | Speed | Time/Epoch |
+|-----|------|-----------|-------|------------|
+| T4 (Colab Free) | 15 GB | ~64 | 1.79 it/s | ~28 min |
+| **L40S (Modal)** | 48 GB | ~198 | 2.24 it/s | ~7.5 min |
+
+### Cost Estimate (Actual)
+- 50 epochs × 7.5 min = 6.2 hours
+- 6.2 hours × $2.07/hr = **~$13**
+
 ### Milestones
 - ✅ Phase 1: Dataset Extraction (270K glyphs)
 - ✅ Phase 1.5: Preprocessing (3,813 fonts)
 - ✅ Phase 2A: Tokenization (248K sequences)
 - ✅ Phase 2A: Model Architecture
-- 🔄 **Phase 2B: Training (IN PROGRESS)**
+- 🔄 **Phase 2B: Training (IN PROGRESS on L40S)**
 - ⏳ Phase 3: Evaluation
 - ⏳ Phase 4: Font Generation
 

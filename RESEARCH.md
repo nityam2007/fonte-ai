@@ -631,3 +631,99 @@ def generate(style_id, char_id, temperature=1.0, top_k=50):
 *Entry logged: 2026-01-22 - Training in progress*
 
 ---
+
+## 2B.2 Switched to Modal L40S
+
+### Date: 2026-01-22
+
+### Why Switch from Colab T4:
+- Colab T4 free tier: 4-hour limit
+- Would need 6 sessions over multiple days
+- Modal L40S: ~$13 for complete training in one session
+
+### Platform:
+- **Hardware**: Modal L40S GPU (48GB VRAM)
+- **CPU**: 4 cores
+- **RAM**: 8 GB
+- **Cost**: $2.07/hour
+
+### Actual Training Metrics:
+
+| Metric | T4 (Colab) | L40S (Modal) |
+|--------|------------|---------------|
+| VRAM | 15 GB | 48 GB |
+| Max Batch Size | ~64 | ~198 |
+| Speed | 1.79 it/s | 2.24 it/s |
+| Batches/Epoch | 3,103 | 1,003 |
+| Time/Epoch | ~28 min | ~7.5 min |
+| 50 Epochs | ~23 hrs | ~6.2 hrs |
+| Cost | FREE | ~$13 |
+
+---
+
+## 2B.3 CRITICAL: Memory Usage Analysis
+
+### ⚠️ Our Initial Estimates Were WRONG!
+
+We assumed:
+- "12M params = ~50MB, plenty of room"
+- "Can use batch 512 easily"
+
+**Reality**: Batch 198 uses **40GB of 48GB VRAM!**
+
+### Why So Much Memory?
+
+**Transformer memory formula:**
+```
+Memory ≈ batch_size × seq_length² × n_layers × n_heads × bytes_per_value
+```
+
+For our model:
+- `batch_size = 198`
+- `seq_length = 512`
+- `n_layers = 6`
+- `n_heads = 4`
+- `d_model = 256`
+
+### Memory Breakdown (Actual):
+
+| Component | Estimated | Actual | Notes |
+|-----------|-----------|--------|-------|
+| Model weights | ~50 MB | ~50 MB | ✅ Correct |
+| Gradients | ~50 MB | ~50 MB | ✅ Correct |
+| Optimizer (AdamW) | ~100 MB | ~100 MB | ✅ 2x model size |
+| **Attention matrices** | ~200 MB | **~15 GB** | ❌ Way off! |
+| **Activations** | ~500 MB | **~25 GB** | ❌ Way off! |
+
+### The Attention Memory Problem:
+
+```
+Attention memory per layer = batch × heads × seq × seq × 4 bytes
+= 198 × 4 × 512 × 512 × 4 = ~830 MB per layer
+= 830 MB × 6 layers = ~5 GB (just attention scores!)
+```
+
+Plus activations, gradients, and intermediate values = **40 GB total**
+
+### Lessons Learned:
+
+1. **Never assume** batch size based on model params alone
+2. **Sequence length** is the memory killer (quadratic!)
+3. **Always test** with small batch first, then increase
+4. **Monitor VRAM** during first few iterations
+
+### Safe Batch Sizes by GPU:
+
+| GPU | VRAM | Safe Batch | Max Batch |
+|-----|------|------------|----------|
+| T4 | 15 GB | 48 | ~64 |
+| A10 | 24 GB | 80 | ~100 |
+| A100 40GB | 40 GB | 160 | ~180 |
+| **L40S** | 48 GB | 180 | ~198 |
+| A100 80GB | 80 GB | 350 | ~400 |
+
+---
+
+*Entry logged: 2026-01-22 - Important memory insights!*
+
+---
