@@ -27,11 +27,8 @@ DATASET/
 DATASET_NORMALIZED/
 FONTS/
 
-# Tokenized data (regenerable, large binary files)
-TOKENIZED/*.bin
-TOKENIZED/*.json
-!TOKENIZED/vocabulary.json
-!TOKENIZED/config.json
+# Tokenized data - tracked with Git LFS
+# (vocabulary.json and config.json are small, train/val/test.bin are LFS)
 
 # Logs
 *.log
