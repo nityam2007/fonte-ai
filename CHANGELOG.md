@@ -220,3 +220,40 @@ DATASET_NORMALIZED/
 ✅ **Phase 1.5 COMPLETE** - Dataset ready for AI training
 
 ---
+
+## [2026-01-22] - GitHub Repository & Data Policy
+
+### Added
+- **GitHub Repository**: [nityam2007/fonte-ai](https://github.com/nityam2007/fonte-ai) (Private)
+- **LICENSE**: Proprietary license for code and models
+- **.gitignore**: Exclude large generated files
+
+### Data Policy Established
+- `FONTS/` - NOT uploaded (clone from Google Fonts: ~2GB)
+- `DATASET/` - NOT uploaded (regenerate with `ttf_to_svg.py`)
+- `DATASET_NORMALIZED/` - NOT uploaded (regenerate with `preprocess_dataset.py`)
+
+### Why Not Upload Datasets?
+1. **Size**: ~3GB total would bloat repository
+2. **Regenerable**: 2 commands, ~3 minutes to recreate
+3. **Licensing**: Font files stay under original licenses (OFL/Apache)
+4. **Reproducibility**: Scripts guarantee identical output
+
+### Data Source
+- Google Fonts repository: https://github.com/google/fonts
+- ~3,800 fonts under OFL, Apache 2.0, UFL licenses
+- We use fonts for training, model output is unique
+
+### Regeneration Commands
+```bash
+# Clone fonts (one-time)
+git clone --depth 1 https://github.com/google/fonts.git FONTS/fonts-main
+
+# Extract SVGs (2.1 min)
+python scripts/ttf_to_svg.py --turbo
+
+# Preprocess (1.4 min)
+python scripts/preprocess_dataset.py --turbo
+```
+
+---

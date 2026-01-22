@@ -29,7 +29,50 @@ Build a generative AI model that can:
 
 ---
 
-## 📊 Current Results
+## � Data Source & Storage
+
+### Why Datasets Are NOT in This Repository
+
+| Directory | Size | Why Not Uploaded |
+|-----------|------|------------------|
+| `FONTS/` | ~2 GB | Google Fonts repo (clone separately) |
+| `DATASET/` | ~500 MB | Generated from FONTS/ (regenerable) |
+| `DATASET_NORMALIZED/` | ~600 MB | Generated from DATASET/ (regenerable) |
+
+**Reasons:**
+1. **Size** — Total ~3 GB would bloat repo and slow clones
+2. **Regenerable** — All data can be recreated with 2 commands (~3 min)
+3. **Licensing** — Font files remain under original licenses (OFL/Apache)
+4. **Reproducibility** — Scripts ensure identical output every time
+
+### Data Source: Google Fonts
+
+We use the official [Google Fonts repository](https://github.com/google/fonts):
+
+```bash
+# Clone Google Fonts (one-time, ~2GB)
+git clone --depth 1 https://github.com/google/fonts.git FONTS/fonts-main
+```
+
+| License | Font Count | Examples |
+|---------|------------|----------|
+| OFL (Open Font License) | ~3,500 | Roboto, Open Sans, Lato |
+| Apache 2.0 | ~200 | Roboto Slab, Cousine |
+| UFL (Ubuntu Font License) | ~50 | Ubuntu, Ubuntu Mono |
+
+### Regenerate Dataset (3 minutes)
+
+```bash
+# Step 1: Extract SVGs from TTF fonts (2.1 min)
+python scripts/ttf_to_svg.py --turbo
+
+# Step 2: Normalize and classify (1.4 min)
+python scripts/preprocess_dataset.py --turbo
+```
+
+---
+
+## �📊 Current Results
 
 ### Phase 1: Dataset Extraction ✅ COMPLETE
 

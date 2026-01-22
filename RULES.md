@@ -1,6 +1,34 @@
 # Project Rules & Conventions
 
-## 📜 CHANGELOG Rules
+## � Data Management Rules
+
+### Rule #6: No Large Files in Git
+
+The following directories are **excluded from Git** (see `.gitignore`):
+
+| Directory | Reason |
+|-----------|--------|
+| `FONTS/` | Clone from Google Fonts separately |
+| `DATASET/` | Regenerable via `ttf_to_svg.py` |
+| `DATASET_NORMALIZED/` | Regenerable via `preprocess_dataset.py` |
+| `.venv/` | Virtual environment (recreate locally) |
+
+### Rule #7: Reproducibility First
+
+- All datasets must be **regenerable from scripts**
+- Never upload generated data to Git
+- Document exact commands to reproduce in README
+- Use fixed random seeds for reproducible splits
+
+### Rule #8: Data Source Attribution
+
+- Fonts are sourced from [Google Fonts](https://github.com/google/fonts)
+- Original licenses (OFL, Apache 2.0, UFL) apply to font files
+- Our scripts and model are proprietary (see LICENSE)
+
+---
+
+## �📜 CHANGELOG Rules
 
 ### Rule #1: APPEND-ONLY Policy
 
