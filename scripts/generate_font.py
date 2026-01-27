@@ -21,6 +21,18 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
+# Import shared constants
+from constants import (
+    VOCAB_SIZE, MAX_SEQ_LENGTH, CANVAS_SIZE,
+    PAD_TOKEN_ID, SOS_TOKEN_ID, EOS_TOKEN_ID, UNK_TOKEN_ID,
+    NEG_TOKEN_ID, COMMAND_START, COMMAND_END,
+    STYLE_START, STYLE_END,
+    CHAR_START, CHAR_END, CHARS,
+    COORD_START, COORD_END, COORD_MAX,
+    is_command_token, is_style_token, is_char_token, is_coord_token,
+    coord_to_token_id, token_id_to_coord, char_to_token_id, token_id_to_char,
+)
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Model Architecture (matching Modal notebook)
@@ -28,16 +40,16 @@ import math
 
 @dataclass
 class ModelConfig:
-    vocab_size: int = 1105
-    max_seq_length: int = 512
+    vocab_size: int = VOCAB_SIZE  # 1106: includes <NEG> token
+    max_seq_length: int = MAX_SEQ_LENGTH  # 512
     d_model: int = 256
     n_heads: int = 4
     n_layers: int = 6
     d_ff: int = 1024
     dropout: float = 0.1
-    pad_token_id: int = 0
-    sos_token_id: int = 1
-    eos_token_id: int = 2
+    pad_token_id: int = PAD_TOKEN_ID  # 0
+    sos_token_id: int = SOS_TOKEN_ID  # 1
+    eos_token_id: int = EOS_TOKEN_ID  # 2
 
 
 class PositionalEncoding(nn.Module):
@@ -139,7 +151,7 @@ class FonteModel(nn.Module):
                 recent_tokens = tokens[0, -20:].tolist()
                 for token_id in set(recent_tokens):
                     # Don't penalize special tokens (0-3) or commands (4-23)
-                    if token_id >= 24:  # Only penalize coord/style/char tokens
+                    if token_id >= NEG_TOKEN_ID:  # Only penalize coord/style/char tokens
                         logits[0, token_id] /= repetition_penalty
             
             if top_k > 0:
@@ -165,27 +177,26 @@ class FonteModel(nn.Module):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Token Mappings (from TOKENIZED/vocabulary.json)
+# Token Mappings (from shared constants module)
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Vocabulary Layout:
-# 0-3:     Special tokens (PAD=0, SOS=1, EOS=2, UNK=3)
-# 4-23:    Commands (M, m, L, l, H, h, V, v, C, c, S, s, Q, q, T, t, A, a, Z, z)
-# 24-28:   Styles (serif=24, sans-serif=25, monospace=26, handwriting=27, display=28)
-# 29-104:  Characters (A-Z=29-54, a-z=55-80, 0-9=81-90, special=91-104)
-# 105-1104: Coordinates (0-999)
+# Vocabulary Layout (from constants.py):
+# 0-3:                    Special tokens (PAD, SOS, EOS, UNK)
+# COMMAND_START-COMMAND_END (4-24): Commands including <NEG>
+# STYLE_START-STYLE_END (25-29):    Style tokens
+# CHAR_START-CHAR_END (30-105):     Character tokens
+# COORD_START-COORD_END (106-1105): Coordinate tokens (0-999)
 
 STYLE_IDS = {
-    'serif': 24,
-    'sans-serif': 25,
-    'monospace': 26,
-    'handwriting': 27,
-    'display': 28,
+    'serif': STYLE_START,      # 25
+    'sans-serif': STYLE_START + 1,  # 26
+    'monospace': STYLE_START + 2,   # 27
+    'handwriting': STYLE_START + 3, # 28
+    'display': STYLE_START + 4,     # 29
 }
 
-# Character mappings (matches vocabulary.json)
-CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*()-+=[]"
-CHAR_IDS = {char: 29 + i for i, char in enumerate(CHARS)}
+# Character mappings (uses shared CHARS constant)
+CHAR_IDS = {char: CHAR_START + i for i, char in enumerate(CHARS)}
 
 # Reverse mappings
 ID_TO_STYLE = {v: k for k, v in STYLE_IDS.items()}
@@ -193,54 +204,57 @@ ID_TO_CHAR = {v: k for k, v in CHAR_IDS.items()}
 
 # Command tokens (for decoding)
 COMMANDS = ['M', 'm', 'L', 'l', 'H', 'h', 'V', 'v', 'C', 'c', 'S', 's', 'Q', 'q', 'T', 't', 'A', 'a', 'Z', 'z']
-COMMAND_IDS = {cmd: 4 + i for i, cmd in enumerate(COMMANDS)}
+COMMAND_IDS = {cmd: COMMAND_START + i for i, cmd in enumerate(COMMANDS)}
 ID_TO_COMMAND = {v: k for k, v in COMMAND_IDS.items()}
 
-# Coordinate token range
-COORD_START = 105
-COORD_END = 1104
+# Coordinate tokens use COORD_START and COORD_END from constants
 
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Token to SVG Conversion
 # ═══════════════════════════════════════════════════════════════════════════
 
-def tokens_to_svg_path(tokens: List[int], canvas_size: int = 128) -> str:
+def tokens_to_svg_path(tokens: List[int], canvas_size: int = CANVAS_SIZE) -> str:
     """Convert token sequence to SVG path data.
     
-    Note: Due to a tokenization bug, <NEG> tokens were encoded as <UNK> (token 3)
-    during training. The model learned to output token 3 for negative coordinates.
-    We interpret UNK followed by a coordinate as a negative value.
+    Uses constants for token ID ranges to avoid hardcoded values.
+    Also maintains backward compatibility with old models that used UNK (ID 3).
     """
     path_parts = []
     i = 0
     next_is_negative = False  # Track if next coord should be negative
     
-    # Skip SOS (1), style (24-28), char (29-104) tokens at the start
-    while i < len(tokens) and (tokens[i] <= 3 or (24 <= tokens[i] <= 104)):
+    # Skip SOS, style, char tokens at the start
+    while i < len(tokens) and (tokens[i] <= UNK_TOKEN_ID or (STYLE_START <= tokens[i] <= CHAR_END)):
         i += 1
     
     while i < len(tokens):
         token = tokens[i]
         
-        # EOS (2) or PAD (0) - stop
-        if token == 0 or token == 2:
+        # EOS or PAD - stop
+        if token == PAD_TOKEN_ID or token == EOS_TOKEN_ID:
             break
         
-        # UNK (3) - treat as negative sign for next coordinate!
-        # This is because <NEG> was encoded as <UNK> during training
-        if token == 3:
+        # <NEG> token - mark next coordinate as negative
+        if token == NEG_TOKEN_ID:
             next_is_negative = True
             i += 1
             continue
         
-        # SOS (1) - skip
-        if token == 1:
+        # UNK - LEGACY: treat as negative sign for old models
+        # Old models trained with bug may still output UNK for negatives
+        if token == UNK_TOKEN_ID:
+            next_is_negative = True
             i += 1
             continue
         
-        # Command token (4-23)
-        if 4 <= token <= 23:
+        # SOS - skip
+        if token == SOS_TOKEN_ID:
+            i += 1
+            continue
+        
+        # Command token (4-23, excluding NEG at 24)
+        if COMMAND_START <= token < NEG_TOKEN_ID:
             cmd = ID_TO_COMMAND.get(token, '')
             path_parts.append(cmd)
             next_is_negative = False  # Reset after command
@@ -248,16 +262,16 @@ def tokens_to_svg_path(tokens: List[int], canvas_size: int = 128) -> str:
             continue
         
         # Style/char tokens that appear mid-sequence - skip
-        if 24 <= token <= 104:
+        if STYLE_START <= token <= CHAR_END:
             i += 1
             continue
         
-        # Coordinate token (105-1104) -> 0-999
-        if COORD_START <= token <= COORD_END:
-            coord = token - COORD_START
+        # Coordinate token
+        if is_coord_token(token):
+            coord = token_id_to_coord(token)
             # Scale from 0-999 to 0-canvas_size
             scaled = coord * canvas_size / 1000
-            # Apply negative sign if UNK preceded this coordinate
+            # Apply negative sign if <NEG> or UNK preceded this coordinate
             if next_is_negative:
                 scaled = -scaled
                 next_is_negative = False

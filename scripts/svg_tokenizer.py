@@ -39,6 +39,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ============================================================================
+# COMPILED REGEX PATTERNS (performance optimization - compile once)
+# ============================================================================
+# Pattern to extract path data from SVG d attribute
+PATH_ATTR_PATTERN = re.compile(r'd="([^"]+)"')
+
+# Pattern to tokenize SVG path commands and numbers
+# Captures: commands (single letters) OR numbers (including negative/decimal)
+PATH_TOKEN_PATTERN = re.compile(r'([MmLlHhVvCcSsQqTtAaZz])|(-?[\d.]+)')
+
+# ============================================================================
 # VOCABULARY DEFINITION
 # ============================================================================
 
@@ -61,6 +71,7 @@ PATH_COMMANDS = [
     'T', 't',  # Smooth Quadratic Bezier
     'A', 'a',  # Arc
     'Z', 'z',  # ClosePath
+    '<NEG>',   # Negative sign for coordinates (CRITICAL FIX)
 ]
 
 # Coordinate quantization
@@ -125,12 +136,20 @@ class Vocabulary:
         return len(self.token_to_id)
     
     def encode(self, token: str) -> int:
-        """Convert token to ID"""
+        """Convert single token to ID"""
         return self.token_to_id.get(token, self.token_to_id[UNK_TOKEN])
+    
+    def encode_sequence(self, tokens: List[str]) -> List[int]:
+        """Convert list of tokens to list of IDs"""
+        return [self.encode(token) for token in tokens]
     
     def decode(self, token_id: int) -> str:
         """Convert ID to token"""
         return self.id_to_token.get(token_id, UNK_TOKEN)
+    
+    def decode_sequence(self, token_ids: List[int]) -> List[str]:
+        """Convert list of IDs to list of tokens"""
+        return [self.decode(token_id) for token_id in token_ids]
     
     def encode_coord(self, value: float, scale: float = 1.0) -> int:
         """Quantize and encode a coordinate value"""
@@ -179,7 +198,7 @@ class Vocabulary:
 
 def parse_svg_path(svg_content: str) -> Optional[str]:
     """Extract path data from SVG content"""
-    match = re.search(r'd="([^"]+)"', svg_content)
+    match = PATH_ATTR_PATTERN.search(svg_content)
     if match:
         return match.group(1)
     return None
@@ -195,11 +214,7 @@ def tokenize_path(path_data: str) -> List[str]:
     """
     tokens = []
     
-    # Split path into commands and numbers
-    # This regex captures: commands (letters) and numbers (including negative/decimal)
-    pattern = r'([MmLlHhVvCcSsQqTtAaZz])|(-?[\d.]+)'
-    
-    for match in re.finditer(pattern, path_data):
+    for match in PATH_TOKEN_PATTERN.finditer(path_data):
         command = match.group(1)
         number = match.group(2)
         
@@ -229,9 +244,7 @@ def normalize_path_for_tokenization(path_data: str, canvas_size: int = 128) -> L
     tokens = []
     scale = 999.0 / canvas_size  # Scale 128 -> 999
     
-    pattern = r'([MmLlHhVvCcSsQqTtAaZz])|(-?[\d.]+)'
-    
-    for match in re.finditer(pattern, path_data):
+    for match in PATH_TOKEN_PATTERN.finditer(path_data):
         command = match.group(1)
         number = match.group(2)
         
@@ -598,6 +611,33 @@ def main():
         parser.print_help()
     
     return 0
+
+
+# ============================================================================
+# CONVENIENCE ALIAS FOR TESTING
+# ============================================================================
+
+class SVGTokenizer:
+    """Convenience wrapper class for testing and scripts"""
+    
+    def __init__(self):
+        self.vocab = Vocabulary()
+    
+    def tokenize_path(self, path_data: str) -> List[str]:
+        """Tokenize an SVG path"""
+        return tokenize_path(path_data)
+    
+    def encode(self, token: str) -> int:
+        """Encode a token to ID"""
+        return self.vocab.encode(token)
+    
+    def decode(self, token_id: int) -> str:
+        """Decode a token ID to string"""
+        return self.vocab.decode(token_id)
+    
+    def get_vocab_size(self) -> int:
+        """Get vocabulary size"""
+        return len(self.vocab)
 
 
 if __name__ == '__main__':

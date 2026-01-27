@@ -33,7 +33,7 @@ import torch.nn.functional as F
 @dataclass
 class ModelConfig:
     """Model configuration"""
-    vocab_size: int = 1105          # From vocabulary.json
+    vocab_size: int = 1106          # From vocabulary.json (includes <NEG> token)
     max_seq_length: int = 512       # Maximum sequence length
     d_model: int = 256              # Embedding dimension
     n_heads: int = 4                # Attention heads
@@ -408,7 +408,7 @@ class FonteModel(nn.Module):
         return model
 
 
-def create_model(size: str = 'medium', vocab_size: int = 1105) -> FonteModel:
+def create_model(size: str = 'medium', vocab_size: int = 1106) -> FonteModel:
     """Create a model with the specified size"""
     if size == 'small':
         config = ModelConfig.small()

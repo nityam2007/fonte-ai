@@ -1,16 +1,12 @@
 # FONTe AI - Dependencies
+# Minimal dependencies - uses Python stdlib where possible
 
-# Core font processing
+# Required
 fonttools>=4.0.0      # Font parsing and glyph extraction
-
-# Optional but recommended
-pillow>=9.0.0         # Image processing (for raster preview)
-cairosvg>=2.5.0       # SVG to PNG conversion (for preview)
-svgwrite>=1.4.0       # SVG creation utilities
-
-# AI Training (Phase 2)
 torch>=2.0.0          # PyTorch for model training
 
-# Optional: For Colab training
-# tqdm                # Progress bars (included in Colab)
-# numpy               # Numerical operations
+# Note: All other functionality uses Python standard library:
+# - xml.etree.ElementTree for SVG parsing
+# - re for regex (pre-compiled patterns)
+# - concurrent.futures for parallel processing
+# - json, pathlib, argparse, dataclasses, typing, etc.
