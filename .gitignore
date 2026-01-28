@@ -46,3 +46,9 @@ logs/
 # checkpoints/
 # models/
 # outputs/
+
+# Ignore intermediate checkpoints (keep only best/final)
+TRAINED/epoch_*.pt
+TRAINED/checkpoint_*.pt
+TRAINED/emergency_checkpoint.pt
+

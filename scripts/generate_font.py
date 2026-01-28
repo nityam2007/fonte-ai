@@ -118,15 +118,27 @@ class FonteModel(nn.Module):
         self.norm = nn.LayerNorm(config.d_model)
         self.head = nn.Linear(config.d_model, config.vocab_size, bias=False)
         self.head.weight = self.emb.weight
-        self.register_buffer('mask', torch.tril(torch.ones(config.max_seq_length, config.max_seq_length)))
+        # Note: mask is optional - models trained with Flash Attention don't have it
+        # self.register_buffer('mask', torch.tril(torch.ones(config.max_seq_length, config.max_seq_length)))
 
     def forward(self, input_ids, labels=None):
         x = self.pos(self.emb(input_ids))
-        m = self.mask[:x.size(1), :x.size(1)]
+        # Create causal mask on the fly if needed
+        seq_len = x.size(1)
+        mask = torch.tril(torch.ones(seq_len, seq_len, device=x.device))
         for b in self.blocks:
-            x = b(x, m)
+            x = b(x, mask)
         logits = self.head(self.norm(x))
         return {'logits': logits}
+
+    @classmethod
+    def load(cls, path: str, device: str = 'cpu') -> 'FonteModel':
+        checkpoint = torch.load(path, map_location=device, weights_only=False)
+        config = ModelConfig(**checkpoint['config'])
+        model = cls(config)
+        # Load state dict with strict=False to handle missing 'mask' buffer
+        model.load_state_dict(checkpoint['state_dict'], strict=False)
+        return model
 
     @torch.no_grad()
     def generate(self, style_id: int, char_id: int, max_length: int = 512, 
@@ -166,14 +178,6 @@ class FonteModel(nn.Module):
                 break
         
         return tokens[0].tolist()
-
-    @classmethod
-    def load(cls, path: str, device: str = 'cpu') -> 'FonteModel':
-        checkpoint = torch.load(path, map_location=device)
-        config = ModelConfig(**checkpoint['config'])
-        model = cls(config)
-        model.load_state_dict(checkpoint['state_dict'])
-        return model
 
 
 # ═══════════════════════════════════════════════════════════════════════════

@@ -2035,3 +2035,183 @@ Deep Bug Hunt:
 ```
 
 ---
+
+# Phase 3: Training & Evaluation
+
+## 3.7 Modal B200 Training - First Successful Run
+
+### Date: 2026-01-28
+
+### Training Infrastructure
+
+| Component | Specification |
+|-----------|---------------|
+| Platform | Modal.com |
+| GPU | NVIDIA B200 (Blackwell) |
+| VRAM | 192 GB |
+| Training Script | `train_modal_100.py` |
+
+### Dataset Used
+
+| Metric | Value |
+|--------|-------|
+| Training Sequences | 5,081 |
+| Validation Sequences | 635 |
+| Max Sequence Length | 512 |
+| Vocabulary Size | 1,106 |
+
+### Training Configuration
+
+| Hyperparameter | Value |
+|----------------|-------|
+| Epochs | 200 |
+| Batch Size | 2,048 |
+| Learning Rate | 3e-4 |
+| Optimizer | AdamW (fused) |
+| Precision | BF16 (mixed) |
+| Attention | Flash Attention (SDPA) |
+
+### Optimization Journey
+
+#### Problem 1: NumPy Missing
+Modal image didn't include NumPy by default.
+**Fix:** Added `"numpy"` to `pip_install` list.
+
+#### Problem 2: Indentation Bug (Critical!)
+Training loop body was outside the for-loop:
+```python
+# BROKEN:
+for epoch in range(1, EPOCHS + 1):
+    last_epoch = epoch
+    epoch_start = time.time()
+
+# This code ran ONCE with epoch=200!
+model.train()
+...
+```
+
+**Impact:** Training completed in 0.2 minutes with random loss.
+**Fix:** Properly indented all training code inside the loop.
+
+#### Problem 3: torch.compile() OOM
+Attempted full-batch training with `torch.compile(mode="reduce-overhead")`:
+- Loaded all 5,081 samples to GPU
+- Single forward pass
+
+**Result:** CUDA OOM despite 192GB VRAM
+```
+OutOfMemoryError: Tried to allocate 4.96 GiB
+GPU: 176.90 GiB in use (of 178.35 GiB)
+```
+
+**Root Cause:** CUDA graphs pre-allocate attention matrices for all layers.
+
+**Fix:** Removed `torch.compile()`, used Flash Attention with mini-batches.
+
+### Final Optimizations
+
+| Optimization | Implementation |
+|--------------|----------------|
+| Flash Attention | `F.scaled_dot_product_attention(is_causal=True)` |
+| Mixed Precision | `torch.autocast(device_type='cuda', dtype=torch.bfloat16)` |
+| Fused Optimizer | `AdamW(..., fused=True)` |
+| GPU Data Loading | Pre-load entire dataset to GPU tensor |
+| Mini-batches | 2,048 samples per batch |
+
+### Training Results
+
+| Metric | Value |
+|--------|-------|
+| Total Time | 2.3 minutes |
+| Epochs | 200 |
+| Best val_loss | 5.25 |
+| Final train_loss | 6.01 |
+| Throughput | 1.4 epochs/sec |
+| Time per Epoch | 635ms |
+
+### Loss Progression
+
+| Epoch | Train Loss | Val Loss | Event |
+|-------|------------|----------|-------|
+| 1 | 125.20 | 54.78 | ⭐ New best |
+| 5 | 23.31 | 20.50 | ⭐ New best |
+| 10 | 16.19 | 14.55 | ⭐ New best |
+| 50 | 7.42 | 6.58 | 💾 Checkpoint |
+| 100 | 6.20 | 5.34 | 💾 Checkpoint |
+| 150 | 6.04 | 5.26 | 💾 Checkpoint |
+| 200 | 6.01 | 5.25 | 💾 Final |
+
+### Learning Observations
+
+1. **Rapid Initial Learning:** Loss dropped from 125 → 16 in first 10 epochs
+2. **Plateau Effect:** Loss stabilized around epoch 100
+3. **Minimal Overfitting:** Train/val loss gap remained small (~0.8)
+4. **Convergence:** Model not fully converged at epoch 200
+
+### Performance Comparison
+
+| Metric | Unoptimized | Optimized | Improvement |
+|--------|-------------|-----------|-------------|
+| Time/epoch | ~4s | 635ms | 6.3x faster |
+| GPU Utilization | Low | High | Flash Attention |
+| OOM Crashes | Frequent | None | Removed torch.compile |
+
+---
+
+## 3.8 Generation Quality Analysis
+
+### Date: 2026-01-28
+
+### Generation Test
+
+Generated 7 glyphs (A-G) using `scripts/generate_font.py`:
+
+| Character | Tokens Generated | Status |
+|-----------|------------------|--------|
+| A | 316 | ✅ |
+| B | 288 | ✅ |
+| C | 40 | ✅ |
+| D | 40 | ✅ |
+| E | 180 | ✅ |
+| F | 38 | ✅ |
+| G | 20 | ✅ |
+
+### Sample Output (Character 'B')
+
+```svg
+<svg viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg">
+<path d="M 186 156 L 186 830 L 534 836 Q 704 842 808 ... Z" fill="#000"/>
+</svg>
+```
+
+### Quality Observations
+
+| Aspect | Observation |
+|--------|-------------|
+| Token Generation | ✅ Model outputs valid SVG command tokens |
+| Path Structure | ⚠️ Some Q commands missing control points |
+| Coordinate Range | ✅ Values within 0-999 range |
+| Style Consistency | ⚠️ Variable across characters |
+
+### Analysis
+
+With val_loss of 5.25, the model has learned:
+- Basic SVG path structure (M, L, Q, Z commands)
+- Coordinate positioning patterns
+- Character differentiation (different token counts per char)
+
+**Limitations at 200 epochs:**
+1. Path structure not always syntactically valid
+2. Character shapes may not be recognizable
+3. Style conditioning not yet effective
+
+### Recommendations for Improvement
+
+| Strategy | Expected Impact |
+|----------|-----------------|
+| More epochs (500-1000) | Better convergence |
+| Full dataset (248K sequences) | More variety, better generalization |
+| Larger model | Capture more complex patterns |
+| Data augmentation | Scale/rotation invariance |
+
+---

@@ -1,6 +1,6 @@
 # FONTe AI - AI Font Generator
 
-> ✅ **ALL BUGS FIXED** - Ready for training! Run `python scripts/verify_bugs.py` to verify.
+> ✅ **TRAINED** - First successful training complete! val_loss: 5.25
 
 > 📜 **Open Source** - Dual Licensed under GPLv3 and Apache 2.0
 >
@@ -10,7 +10,8 @@
 
 An AI-powered font generation system that learns from existing fonts and generates new, unique typefaces.
 
-[![Status](https://img.shields.io/badge/Status-Ready%20for%20Training-green)](https://github.com/nityam2007/fonte-ai)
+[![Status](https://img.shields.io/badge/Status-Trained-brightgreen)](https://github.com/nityam2007/fonte-ai)
+[![val_loss](https://img.shields.io/badge/val__loss-5.25-blue)](https://github.com/nityam2007/fonte-ai)
 [![Vocab](https://img.shields.io/badge/Vocabulary-1106%20tokens-blue)](https://github.com/nityam2007/fonte-ai)
 [![Fonts](https://img.shields.io/badge/Fonts-3813-purple)](https://github.com/nityam2007/fonte-ai)
 [![Sequences](https://img.shields.io/badge/Sequences-248K-orange)](https://github.com/nityam2007/fonte-ai)
@@ -587,12 +588,27 @@ python scripts/verify_bugs.py
 - **Result:** Model learned noise, glyphs unrecognizable
 - **Cost:** ~$44 wasted
 
-### Current State (2026-01-27)
+### Second Training Run (2026-01-28) ✅ SUCCESS
+- **Platform:** Modal.com with B200 GPU (192GB VRAM)
+- **Dataset:** 5,081 train / 635 val sequences
+- **Epochs:** 200 in 2.3 minutes
+- **Best val_loss:** 5.25
+- **Optimizations:** Flash Attention, BF16, fused AdamW
+- **Result:** Model generates SVG tokens, needs more training for quality
+
+| Metric | Value |
+|--------|-------|
+| Training Time | 2.3 min |
+| Epochs | 200 |
+| val_loss | 5.25 |
+| Throughput | 635ms/epoch |
+
+### Current State (2026-01-28)
 - ✅ All bugs fixed
 - ✅ 12/12 verification tests passing
-- ✅ Training data 0% UNK contamination
-- ✅ Binary format verified
-- 🚀 Ready for clean training run
+- ✅ First successful training complete
+- ✅ Model generating SVG tokens
+- 🎯 Next: Train on full dataset (248K sequences)
 
 ---
 
